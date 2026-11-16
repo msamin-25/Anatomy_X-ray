@@ -43,7 +43,9 @@ export class SkullRig {
   private readonly pos = new Vector3();
   private readonly quat = new Quaternion();
   private readonly scale = new Vector3();
-  private readonly base = new Matrix4();
+  /** Rest-to-camera matrix of the cranium; valid while `tracked`. */
+  readonly base = new Matrix4();
+  tracked = false;
   private readonly jawLocal = new Matrix4();
   private readonly tmpM = new Matrix4();
   private readonly rel = REF_IDS.map(() => new Vector3());
@@ -73,6 +75,7 @@ export class SkullRig {
   }
 
   private show(visible: boolean): void {
+    this.tracked = visible;
     for (const b of this.cranium) b.node.visible = visible;
     for (const b of this.jaw) b.node.visible = visible;
     this.mask.mesh.visible = visible;

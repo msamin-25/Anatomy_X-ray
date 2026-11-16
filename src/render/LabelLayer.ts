@@ -45,6 +45,7 @@ export class LabelLayer {
     const groups = new Map<string, Placed[]>();
     for (const a of anchors) {
       const p = this.stage.toScreen(a.pos, this.point);
+      if (p.x < 0 || p.y < 0 || p.x > window.innerWidth || p.y > window.innerHeight) continue;
       const text = a.text.toUpperCase();
       if (!groups.has(a.entity)) groups.set(a.entity, []);
       groups.get(a.entity)!.push({
@@ -115,11 +116,14 @@ function separate(all: Placed[]): void {
   all.sort((p, q) => p.labelY - q.labelY);
   for (let i = 1; i < all.length; i++) {
     const cur = all[i];
-    for (let j = 0; j < i; j++) {
+    // Each move pushes the label strictly down, so a full pass per earlier
+    // label is the most this can need; the cap guards against rounding loops.
+    for (let j = 0, moves = 0; j < i && moves <= i; j++) {
       const other = all[j];
       const overlapX = x0(cur) < x0(other) + other.width + 8 && x0(other) < x0(cur) + cur.width + 8;
-      if (overlapX && Math.abs(cur.labelY - other.labelY) < LINE_HEIGHT) {
+      if (overlapX && Math.abs(cur.labelY - other.labelY) < LINE_HEIGHT - 0.5) {
         cur.labelY = other.labelY + LINE_HEIGHT;
+        moves++;
         j = -1; // re-check against everything placed so far
       }
     }

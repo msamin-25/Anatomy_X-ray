@@ -1,8 +1,9 @@
-import { FaceLandmarker, FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
+import { FaceLandmarker, FilesetResolver, HandLandmarker, PoseLandmarker } from '@mediapipe/tasks-vision';
 import { FaceMask } from '../../render/FaceMask';
 import type { Stage } from '../../render/Stage';
 import { XrayStyle } from '../../render/xray';
 import type { FrameInput, LabelAnchor, SpeciesPlugin, ViewOptions } from '../types';
+import { BodyRig } from './BodyRig';
 import { HandRig } from './HandRig';
 import { loadSkeleton, type Skeleton } from './skeleton';
 import { SkullRig } from './SkullRig';
@@ -16,11 +17,13 @@ export class HumanPlugin implements SpeciesPlugin {
   private skeleton!: Skeleton;
   private face!: FaceLandmarker;
   private handTracker!: HandLandmarker;
+  private poseTracker!: PoseLandmarker;
+  private body!: BodyRig;
   private skull!: SkullRig;
   private hands!: { L: HandRig; R: HandRig };
   private readonly mask = new FaceMask();
   private readonly skullStyle = new XrayStyle(0.8);
-  private readonly boneStyle = new XrayStyle();
+  private readonly boneStyle = new XrayStyle(1.5);
 
   async load(stage: Stage, onProgress: (message: string) => void): Promise<void> {
     this.stage = stage;
@@ -31,6 +34,7 @@ export class HumanPlugin implements SpeciesPlugin {
     stage.scene.add(this.mask.mesh, this.skeleton.root);
     this.skull = new SkullRig(this.skeleton, this.skullStyle, this.mask);
     this.hands = { L: new HandRig(this.skeleton, 'L'), R: new HandRig(this.skeleton, 'R') };
+    this.body = new BodyRig(this.skeleton);
 
     onProgress('Loading trackers');
     const fileset = await FilesetResolver.forVisionTasks(`${BASE}mediapipe/wasm`);
@@ -47,6 +51,11 @@ export class HumanPlugin implements SpeciesPlugin {
         baseOptions: { modelAssetPath: `${MODELS}/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`, delegate },
         runningMode: 'VIDEO',
         numHands: 2,
+      });
+      this.poseTracker = await PoseLandmarker.createFromOptions(fileset, {
+        baseOptions: { modelAssetPath: `${MODELS}/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task`, delegate },
+        runningMode: 'VIDEO',
+        numPoses: 1,
       });
     };
     try {
@@ -82,6 +91,16 @@ export class HumanPlugin implements SpeciesPlugin {
     }
     if (!seen.L) this.hands.L.hide();
     if (!seen.R) this.hands.R.hide();
+
+    const pose = options.body ? this.poseTracker.detectForVideo(source.el, time) : null;
+    if (pose?.landmarks[0]) {
+      this.body.handWrist.L = seen.L ? this.hands.L.joints[0] : null;
+      this.body.handWrist.R = seen.R ? this.hands.R.joints[0] : null;
+      const skullBase = this.skull.tracked ? this.skull.base : null;
+      labels.push(...this.body.update(pose.landmarks[0], pose.worldLandmarks[0], aspect, dt, skullBase));
+    } else {
+      this.body.hide();
+    }
     return labels;
   }
 
@@ -93,5 +112,6 @@ export class HumanPlugin implements SpeciesPlugin {
     this.stage.scene.remove(this.mask.mesh, this.skeleton.root);
     this.face.close();
     this.handTracker.close();
+    this.poseTracker.close();
   }
 }

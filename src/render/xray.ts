@@ -35,7 +35,7 @@ void main() {
   // The camera sits at the origin, so the view direction is -vWorld.
   float facing = abs(dot(normalize(vNormal), normalize(-vWorld)));
   float rim = pow(1.0 - facing, 1.5);
-  gl_FragColor = vec4(uColor * (0.045 + 0.42 * rim) * uStrength, 1.0);
+  gl_FragColor = vec4(uColor * (0.05 + 0.42 * rim) * uStrength, 1.0);
 }`;
 
 /**

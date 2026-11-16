@@ -23,6 +23,8 @@ export interface Bone {
 export interface Skeleton {
   bones: Map<string, Bone>;
   skull: { fit: number[]; jawHinge: [number[], number[]]; midX: number };
+  /** Rest-pose body joints, e.g. `shoulder_L`. */
+  joints: Record<string, number[]>;
   root: Group;
 }
 
@@ -53,5 +55,5 @@ export async function loadSkeleton(base: string, styleFor: (group: string) => Xr
       info: { name: raw.name, group: raw.group, side: raw.side, a: v(raw.a), b: v(raw.b), c: v(raw.c), anchor: v(raw.anchor) },
     });
   });
-  return { bones, skull: manifest.skull, root };
+  return { bones, skull: manifest.skull, joints: manifest.joints, root };
 }

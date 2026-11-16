@@ -228,6 +228,33 @@ def skull_fit(by_key: dict) -> dict:
     return {"fit": m.T.flatten().round(5).tolist(), "jawHinge": hinge}  # column-major
 
 
+def rest_joints(by_key: dict, mid_x: float) -> dict:
+    """Rest-pose positions of the body joints MediaPipe Pose reports."""
+    def ext(v, axis, q, top):
+        lim = np.quantile(v[:, axis], 1 - q if top else q)
+        return v[v[:, axis] >= lim] if top else v[v[:, axis] <= lim]
+
+    joints = {}
+    for s in ("L", "R"):
+        v = lambda key: by_key[f"{key}_{s}"]["v"].astype(np.float64)
+        hum, fem, tib = v("humerus"), v("femur"), v("tibia")
+        head = ext(fem, 1, 0.08, True)
+        medial = head[np.argsort(np.abs(head[:, 0] - mid_x))[: len(head) // 2]]
+        pts = {
+            "shoulder": ext(hum, 1, 0.04, True).mean(0),
+            "elbow": ext(hum, 1, 0.04, False).mean(0),
+            "wrist": np.mean([v(k).mean(0) for k in ("scaphoid", "lunate", "triquetral")], axis=0),
+            "hip": medial.mean(0),
+            "knee": (ext(fem, 1, 0.03, False).mean(0) + ext(tib, 1, 0.03, True).mean(0)) / 2,
+            "ankle": v("talus").mean(0),
+            "heel": ext(v("calcaneus"), 2, 0.05, False).mean(0),
+            "toe": ext(v("tdp1"), 2, 0.10, True).mean(0),
+        }
+        for name, p in pts.items():
+            joints[f"{name}_{s}"] = np.round(p, 3).tolist()
+    return joints
+
+
 def main():
     rows = [line.rstrip("\n").split("\t") for line in open(fetch("parts_list_e.txt"))][1:]
     wanted = {}
@@ -256,7 +283,8 @@ def main():
     mid_x = float(by_key["nasal_L"]["v"][:, 0].min() + by_key["nasal_R"]["v"][:, 0].max()) / 2
     manifest = {"credit": "BodyParts3D, (c) The Database Center for Life Science, "
                           "licensed under CC Attribution-Share Alike 2.1 Japan",
-                "units": "cm", "skull": {**skull_fit(by_key), "midX": round(mid_x, 3)}, "bones": {}}
+                "units": "cm", "skull": {**skull_fit(by_key), "midX": round(mid_x, 3)},
+                "joints": rest_joints(by_key, mid_x), "bones": {}}
     for b in bones:
         v = b["v"].astype(np.float64)
         a, e = principal_ends(v)
