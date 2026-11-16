@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Anatomy X-ray</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2305070c'/%3E%3Ccircle cx='16' cy='14' r='8' fill='none' stroke='%237fd4ff' stroke-width='2.5'/%3E%3Cpath d='M12 22v4m4-4v4m4-4v4' stroke='%237fd4ff' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+    <canvas id="labels"></canvas>
+
+    <section id="intro">
+      <h1>Anatomy X-ray</h1>
+      <p>See the skeleton under your skin, live. Video stays on this device.</p>
+      <button id="start" class="primary" disabled>Loading…</button>
+      <p class="hint">or drop an image or video anywhere</p>
+      <p id="status" role="status"></p>
+    </section>
+
+    <nav id="controls" hidden>
+      <div class="segmented" role="group" aria-label="Face reveal">
+        <button data-face="half" aria-pressed="true">Half</button>
+        <button data-face="full" aria-pressed="false">Full</button>
+        <button data-face="off" aria-pressed="false">Off</button>
+      </div>
+      <button id="side" title="Switch which half of the face is revealed">Flip side</button>
+      <button id="hands" aria-pressed="true">Hands</button>
+      <button id="body" aria-pressed="false">Body</button>
+      <button id="labelsToggle" aria-pressed="true">Labels</button>
+    </nav>
+
+    <footer id="credit">Bone models: BodyParts3D © DBCLS, CC BY-SA 2.1 JP</footer>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
