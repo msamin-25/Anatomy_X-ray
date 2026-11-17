@@ -1,9 +1,10 @@
 # Anatomy X-ray
 
 A webcam "X-ray mirror": it tracks your face, hands and body and draws the
-matching bones over the video, with anatomical labels. A second mode does the
-same for dogs and cats, and a third is a guided skin check. Everything runs in
-the browser and no video leaves your device.
+matching bones, nerves, heart and blood vessels over the video, with
+anatomical labels and animated blood flow. Other modes show a dog or cat
+skeleton, a 3D body you can turn and zoom without a camera, and a guided skin
+check. Everything runs in the browser and no video leaves your device.
 
 ## Run
 
@@ -13,18 +14,28 @@ npm run animal-model   # once: downloads the dog/cat pose model (about 50 MB)
 npm run dev
 ```
 
-Open the printed URL, pick a mode on the home screen (**Human skeleton**,
-**Dog & cat skeleton** or **Skin check**) and allow camera access. You can also
-open or drop an image or video file. The back arrow returns to the home screen
-and switches the camera off.
+Open the printed URL, pick a mode on the home screen (**Human X-ray**,
+**Dog & cat skeleton**, **Skin check** or **3D body explorer**) and allow camera
+access (the explorer needs none). You can also open or drop an image or video
+file. The back arrow returns to the home screen and switches the camera off.
 
-In the camera view, the tabs at the top switch between **Human**, **Pet** and
-**Skin**, and the chip beside them shows what is happening (live, loading,
-looking for a pet). The toolbar at the bottom holds the tools for the mode. In human mode,
-**Half / Full / Off** set how much of the face is revealed, **Flip side**
-switches the revealed half, and **Hands**, **Body** and **Labels** toggle those
-layers. In animal mode the species is detected automatically; **Dog** or
+In the camera view, the tabs at the top switch between **Human**, **Pet**,
+**Skin** and **3D**, and the chip beside them shows what is happening (live,
+loading, looking for a pet). The toolbar at the bottom holds the tools for the
+mode. In human mode, **Show: Bones / Nerves / Blood** picks the body systems
+(nerves and blood switch on body tracking: step back so your chest and arms are
+in view), **Half / Full / Off** set how much of the face is revealed, **Flip
+side** switches the revealed half, and **Hands**, **Body** and **Labels** toggle
+those layers. In animal mode the species is detected automatically; **Dog** or
 **Cat** overrides it when the detector gets it wrong.
+
+**3D** shows the whole body in the anatomical position with the same systems:
+drag to turn it, scroll or pinch to zoom, right-drag or two fingers to move,
+double-click to reset. **Body / Head / Chest / Hand** jump to a view and
+**Spin** turns it slowly. The heart beats, a pressure wave runs out along the
+arteries with each beat, blood drifts back along the veins (red is oxygen-rich,
+blue oxygen-poor, so the pulmonary arteries are blue), and signals run out
+along the nerves.
 
 **Skin** turns the camera into a magnifier (zoom, the phone's light where
 supported, and **Save photo** to compare a spot over time) and asks a few
@@ -33,7 +44,8 @@ causes of skin like that, with links to NHS pages. It is guidance, not a
 diagnosis: no image model is used, because none that is free was accurate
 enough (see the architecture notes).
 
-URL options, handy for testing: `?mode=animal|skin`, `?species=dog|cat`,
+URL options, handy for testing: `?mode=animal|skin|explore`, `?nerves=1`,
+`?blood=1`, `?species=dog|cat`,
 `?src=/test/dog_side.jpg` (an image or video instead of the camera),
 `?delegate=cpu`, and `?debug` (shows pose inference time and exposes
 tracking internals as `window.__animal`).
@@ -53,23 +65,28 @@ Cross-Origin-Embedder-Policy: credentialless
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Rebuilding the bone models
+## Rebuilding the anatomy models
 
-The models in `public/models/human/` are generated and committed. To rebuild
-them (downloads about 130 MB of source meshes into `tools/.cache`):
+The models in `public/models/human/` are generated and committed: `human.glb`
+and `human.json` (bones), and `systems.glb` and `systems.json` (heart, vessels,
+nerves, brain, lungs). To rebuild them (downloads about 150 MB of source meshes
+into `tools/.cache`):
 
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r tools/requirements.txt
-npm run assets
+npm run assets     # bones, then systems
+npm run systems    # systems only
 ```
 
 ## Credits
 
-- Bone meshes are derived from **BodyParts3D**, © The Database Center for Life
-  Science, licensed under
+- Bone, heart, great vessel, lung and brain meshes are derived from
+  **BodyParts3D**, © The Database Center for Life Science, licensed under
   [CC Attribution-Share Alike 2.1 Japan](https://creativecommons.org/licenses/by-sa/2.1/jp/deed.en).
-  The files in `public/models/human/` carry the same licence.
+  The files in `public/models/human/` carry the same licence. BodyParts3D has
+  no meshes for the vessels and nerves of the limbs, neck, face and chest wall;
+  those are routed by hand along their textbook course and are schematic.
 - Tracking uses [MediaPipe Tasks](https://ai.google.dev/edge/mediapipe/solutions/guide) (Apache 2.0).
 - Animal pose: [RTMPose](https://github.com/open-mmlab/mmpose/tree/main/projects/rtmpose)
   trained on AP-10K, by OpenMMLab (Apache 2.0), run with

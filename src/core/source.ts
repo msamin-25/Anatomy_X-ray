@@ -15,6 +15,8 @@ export interface FrameSource {
   live: boolean;
   /** The camera track, for zoom and light controls. */
   track?: MediaStreamTrack;
+  /** True for the 3D explorer's backdrop, which has no camera behind it. */
+  scene?: boolean;
   /** Returns true when there is a frame the trackers have not seen yet. */
   hasNewFrame(): boolean;
   dispose(): void;

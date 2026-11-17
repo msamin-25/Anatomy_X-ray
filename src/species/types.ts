@@ -1,6 +1,7 @@
 import type { Vector3 } from 'three';
 import type { FrameSource } from '../core/source';
 import type { Stage } from '../render/Stage';
+import type { Layers } from './human/systems';
 
 /** A bone name pinned to a point in camera space. */
 export interface LabelAnchor {
@@ -8,6 +9,8 @@ export interface LabelAnchor {
   pos: Vector3;
   /** Labels with the same entity are laid out together (one face, one hand). */
   entity: string;
+  /** Marker colour; the accent colour when absent. */
+  color?: string;
 }
 
 export interface FrameInput {
@@ -25,6 +28,8 @@ export interface ViewOptions {
   face: FaceMode;
   hands: boolean;
   body: boolean;
+  /** Which body systems to draw: bones, nerves, heart and blood vessels. */
+  layers: Layers;
 }
 
 /** One species: its trackers, its skeleton and the rigs that connect them. */

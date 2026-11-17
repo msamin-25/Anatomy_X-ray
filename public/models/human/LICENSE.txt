@@ -1,8 +1,12 @@
-human.glb and human.json are derived from BodyParts3D.
+human.glb, human.json, systems.glb and systems.json are derived from BodyParts3D.
 
 BodyParts3D, (c) The Database Center for Life Science, licensed under
 CC Attribution-Share Alike 2.1 Japan.
 https://creativecommons.org/licenses/by-sa/2.1/jp/deed.en
 
 Changes: converted from STL, re-oriented, scaled to centimetres, decimated,
-and combined into one GLB by tools/build_human_assets.py.
+and combined into GLB files by tools/build_human_assets.py and
+tools/build_systems.py. systems.glb also adds a smoothed hull per cerebral
+hemisphere, and systems.json adds vessel and nerve centre lines routed along
+the skeleton (schematic, not scanned anatomy). The output carries the same
+licence.

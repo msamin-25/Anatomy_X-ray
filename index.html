@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#060a12" />
-    <meta name="description" content="See a live, labelled X-ray view of your skeleton or your pet's, or get guided advice about a spot on your skin. Runs privately in your browser." />
+    <meta name="description" content="See a live, labelled X-ray view of your skeleton, nerves, heart and blood flow, or your pet's skeleton, explore the body in 3D, or get guided advice about a spot on your skin. Runs privately in your browser." />
     <title>Anatomy X-ray · Live anatomy and skin guidance</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/src/style.css" />
@@ -32,16 +32,16 @@
             <p class="eyebrow">Live anatomy · On-device AI</p>
             <h1>See the skeleton <span class="accent">beneath the skin.</span></h1>
             <p class="lede">
-              Point your camera at yourself or your pet for a live, labelled X-ray view, or get guided advice about a
-              spot on your skin. Everything runs privately in your browser.
+              A live X-ray of your bones, nerves, heart and blood flow, a 3D body explorer, your pet's skeleton and
+              guided skin advice. Everything runs privately in your browser.
             </p>
           </section>
 
           <section class="modes" aria-label="Choose a mode">
             <button id="start" class="mode-card" style="--tint: #2dd4bf">
               <span class="mode-icon"><i data-icon="scan-face" data-size="22"></i></span>
-              <span class="mode-title">Human skeleton</span>
-              <span class="mode-text">Skull, hands and full body tracked in real time, with every bone labelled.</span>
+              <span class="mode-title">Human X-ray</span>
+              <span class="mode-text">Bones, nerves, heart and blood flow tracked on your body in real time, all labelled.</span>
               <span class="mode-meta">
                 <span><i data-icon="camera" data-size="14"></i> Front camera</span>
                 <span><i data-icon="cpu" data-size="14"></i> Real-time tracking</span>
@@ -67,6 +67,16 @@
                 <span><i data-icon="stethoscope" data-size="14"></i> Based on NHS advice</span>
               </span>
               <span class="mode-cta">Start <i data-icon="chevron-right" data-size="16"></i></span>
+            </button>
+            <button id="startExplore" class="mode-card" style="--tint: #fb7185">
+              <span class="mode-icon"><i data-icon="rotate-3d" data-size="22"></i></span>
+              <span class="mode-title">3D body explorer</span>
+              <span class="mode-text">Turn and zoom a whole body: skeleton, nerves, the beating heart and its blood flow.</span>
+              <span class="mode-meta">
+                <span><i data-icon="heart-pulse" data-size="14"></i> Animated circulation</span>
+                <span><i data-icon="camera" data-size="14"></i> No camera needed</span>
+              </span>
+              <span class="mode-cta">Explore <i data-icon="chevron-right" data-size="16"></i></span>
             </button>
           </section>
 
@@ -125,6 +135,7 @@
         <button data-mode="human" aria-pressed="true"><i data-icon="scan-face" data-size="18"></i><span>Human</span></button>
         <button data-mode="animal" aria-pressed="false"><i data-icon="paw-print" data-size="18"></i><span>Pet</span></button>
         <button data-mode="skin" aria-pressed="false"><i data-icon="scan-search" data-size="18"></i><span>Skin</span></button>
+        <button data-mode="explore" aria-pressed="false"><i data-icon="rotate-3d" data-size="18"></i><span>3D</span></button>
       </div>
       <p id="hud" class="status-chip" role="status" data-state="idle"><span class="status-dot"></span><span id="hudText">Starting</span></p>
     </header>
@@ -132,6 +143,24 @@
     <aside id="skinPanel" class="panel" aria-label="Skin check" hidden></aside>
 
     <nav id="controls" class="toolbar" aria-label="Camera tools" hidden>
+      <div class="tool-group layers-only" role="group" aria-label="Body systems">
+        <span class="tool-label">Show</span>
+        <span class="seg">
+          <button data-layer="bones" aria-pressed="true"><span class="dot" style="--dot: #cfe9ff"></span>Bones</button>
+          <button data-layer="nerves" aria-pressed="false"><span class="dot" style="--dot: #facc15"></span>Nerves</button>
+          <button data-layer="blood" aria-pressed="false"><span class="dot" style="--dot: #ff4d5e"></span>Blood</button>
+        </span>
+      </div>
+      <div class="tool-group explore-only" role="group" aria-label="View" hidden>
+        <span class="tool-label">View</span>
+        <span class="seg">
+          <button data-view="body">Body</button>
+          <button data-view="head">Head</button>
+          <button data-view="chest">Chest</button>
+          <button data-view="hand">Hand</button>
+        </span>
+      </div>
+      <button id="spin" class="tool explore-only" hidden aria-pressed="false" title="Turn the body slowly"><i data-icon="refresh-cw"></i><span>Spin</span></button>
       <div class="tool-group human-only" role="group" aria-label="Face reveal">
         <span class="tool-label">Face</span>
         <span class="seg">
@@ -158,6 +187,12 @@
       <button id="flip" class="tool" hidden title="Switch between the front and rear camera"><i data-icon="switch-camera"></i><span>Camera</span></button>
     </nav>
 
+    <ul id="legend" class="legend" aria-label="Colour key" hidden>
+      <li data-legend="blood"><span class="dot" style="--dot: #ff4d5e"></span>Oxygen-rich blood</li>
+      <li data-legend="blood"><span class="dot" style="--dot: #4f86ff"></span>Oxygen-poor blood</li>
+      <li data-legend="nerves"><span class="dot" style="--dot: #facc15"></span>Nerves</li>
+      <li data-legend="nerves"><span class="dot" style="--dot: #f5a3e6"></span>Brain</li>
+    </ul>
     <p id="credit" class="credit" hidden></p>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 

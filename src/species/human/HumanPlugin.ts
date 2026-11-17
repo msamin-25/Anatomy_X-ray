@@ -1,11 +1,9 @@
 import { FaceLandmarker, FilesetResolver, HandLandmarker, PoseLandmarker } from '@mediapipe/tasks-vision';
-import { FaceMask } from '../../render/FaceMask';
 import type { Stage } from '../../render/Stage';
-import { XrayStyle } from '../../render/xray';
 import type { FrameInput, LabelAnchor, SpeciesPlugin, ViewOptions } from '../types';
 import { BodyRig } from './BodyRig';
 import { HandRig } from './HandRig';
-import { loadSkeleton, type Skeleton } from './skeleton';
+import { HumanModel, humanModel } from './model';
 import { SkullRig } from './SkullRig';
 
 const MODELS = 'https://storage.googleapis.com/mediapipe-models';
@@ -14,27 +12,22 @@ const BASE = import.meta.env.BASE_URL;
 export class HumanPlugin implements SpeciesPlugin {
   readonly id = 'human';
   private stage!: Stage;
-  private skeleton!: Skeleton;
+  readonly model = humanModel;
   private face!: FaceLandmarker;
   private handTracker!: HandLandmarker;
   private poseTracker!: PoseLandmarker;
   private body!: BodyRig;
   private skull!: SkullRig;
   private hands!: { L: HandRig; R: HandRig };
-  private readonly mask = new FaceMask();
-  private readonly skullStyle = new XrayStyle(0.8);
-  private readonly boneStyle = new XrayStyle(1.5);
 
   async load(stage: Stage, onProgress: (message: string) => void): Promise<void> {
     this.stage = stage;
     onProgress('Loading skeleton');
-    this.skeleton = await loadSkeleton(`${BASE}models/human/`, (group) =>
-      group === 'cranium' || group === 'jaw' ? this.skullStyle : this.boneStyle,
-    );
-    stage.scene.add(this.mask.mesh, this.skeleton.root);
-    this.skull = new SkullRig(this.skeleton, this.skullStyle, this.mask);
-    this.hands = { L: new HandRig(this.skeleton, 'L'), R: new HandRig(this.skeleton, 'R') };
-    this.body = new BodyRig(this.skeleton);
+    const model = this.model;
+    await model.load(stage);
+    this.skull = new SkullRig(model.skeleton, model.skullStyle, model.mask);
+    this.hands = { L: new HandRig(model.skeleton, 'L'), R: new HandRig(model.skeleton, 'R') };
+    this.body = new BodyRig(model.skeleton);
 
     onProgress('Loading trackers');
     const fileset = await FilesetResolver.forVisionTasks(`${BASE}mediapipe/wasm`);
@@ -70,6 +63,8 @@ export class HumanPlugin implements SpeciesPlugin {
   update(frame: FrameInput, options: ViewOptions): LabelAnchor[] {
     const { source, time, dt, aspect } = frame;
     const labels: LabelAnchor[] = [];
+    const { layers } = options;
+    this.model.skeleton.root.visible = layers.bones;
 
     if (options.face === 'off') {
       this.skull.reset();
@@ -101,7 +96,16 @@ export class HumanPlugin implements SpeciesPlugin {
     } else {
       this.body.hide();
     }
-    return labels;
+
+    // Heart, vessels and nerves follow the bones the rigs just posed. Their
+    // names replace the bone names while they are shown.
+    const systems = this.model.systems;
+    this.model.dimBones(!!systems && (layers.nerves || layers.blood));
+    if (systems && (layers.nerves || layers.blood)) {
+      return systems.update(time / 1000, layers, HumanModel.focalPixels(this.stage), true);
+    }
+    systems?.hide();
+    return layers.bones ? labels : [];
   }
 
   hide(): void {
@@ -109,6 +113,7 @@ export class HumanPlugin implements SpeciesPlugin {
     this.hands?.L.hide();
     this.hands?.R.hide();
     this.body?.hide();
+    this.model.systems?.hide();
   }
 
   flipFaceSide(): void {
@@ -116,7 +121,7 @@ export class HumanPlugin implements SpeciesPlugin {
   }
 
   dispose(): void {
-    this.stage.scene.remove(this.mask.mesh, this.skeleton.root);
+    this.hide();
     this.face.close();
     this.handTracker.close();
     this.poseTracker.close();

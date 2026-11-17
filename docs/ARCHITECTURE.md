@@ -72,6 +72,51 @@ Rest joints (A₀, B₀) are computed by the asset pipeline from the bone meshes
    as on a radiograph).
 4. Labels: 2D canvas, leader lines from projected bone anchors to side columns.
 
+## Body systems
+
+`tools/build_systems.py` builds `systems.glb` and `systems.json` next to the
+bones, in the same anatomical space.
+
+- **Meshes** (BodyParts3D): heart wall, aorta and its branches, coronary
+  arteries, venae cavae, jugular, subclavian, iliac and renal vessels,
+  pulmonary arteries and veins, lungs, trachea and bronchi, cerebrum (white
+  matter), cerebellum, brainstem, ventricles and optic nerves. The white matter
+  is folded and has no cortex, so a smoothed hull per hemisphere is added as
+  the brain's outer surface.
+- **Routed paths**: BodyParts3D has nothing for the limbs, neck, face and chest
+  wall, so about 250 vessels and nerves are written as centre lines whose
+  control points are placed relative to the bones (a point along a bone's axis
+  plus offsets, or on the skull surface): the spinal cord through the
+  vertebral canals, spinal roots and intercostal nerves along the ribs, the
+  brachial plexus and the median, ulnar, radial and musculocutaneous nerves,
+  the femoral, sciatic, tibial and fibular nerves, the facial, trigeminal,
+  vagus and phrenic nerves, limb, hand, foot, neck, face and brain arteries and
+  veins, the dural sinuses and the azygos veins. The app turns them into tubes.
+- **Binding**: each vertex and centre-line sample follows up to two skeleton
+  segments (groups of bones a rig moves as one: the skull, the jaw, each neck
+  and lumbar vertebra, the rib cage, the pelvis, each limb segment, the palm,
+  each finger bone). Meshes bind to the nearest allowed bones (blended within
+  2 cm); paths carry the binding of their control points, blended between them,
+  so a vessel bends across a joint.
+- **Flow distance**: centimetres along each network from the heart (arteries
+  and veins, pulmonary arteries and veins) or from the brainstem (nerves),
+  found with Dijkstra over the mesh edges and by arc length along the paths.
+
+`Systems` (`src/species/human/systems.ts`) uploads the segment matrices as a
+small float texture each frame (visibility in the last element), and one
+shader per group skins each vertex with two of them. The shader also squeezes
+the heart and the roots of its vessels with the beat, lets the lungs breathe,
+keeps thin tubes at least 1.6 px wide, and animates the flow distance: a
+pressure wave per heartbeat along the arteries, a slower drift back along the
+veins, quick signals along the nerves. Everything is additive; the bones glow
+at half strength while these layers are on. The systems model (about 2.7 MB)
+loads the first time the Nerves or Blood layer, or the explorer, needs it.
+
+The live mirror and the 3D explorer share one `HumanModel` (bones, styles,
+systems). The explorer (`ExplorePlugin`) sets every bone to the same orbit
+matrix, so the body stands in its rest pose; its frame source is a backdrop
+the size of the window, with no camera.
+
 ## Species plugins
 
 Each species implements one interface (`src/species/types.ts`):
@@ -183,13 +228,15 @@ reconsidered.
 ```
 docs/                 this file
 tools/                Python asset pipeline (run with .venv)
-public/models/human/  human.glb + human.json (generated, committed)
+public/models/human/  human.glb + human.json, systems.glb + systems.json
+                      (generated, committed)
 public/models/animal/ rtmpose-ap10k.onnx (fetched by `npm run animal-model`)
 src/
   main.ts             bootstrap, UI wiring, mode switching
   core/               video source, filters, math
   render/             stage, X-ray material, labels, face mask
-  species/human/      trackers, skull / hand / body rigs
+  species/human/      trackers, skull / hand / body rigs, body systems,
+                      3D explorer, shared model
   species/animal/     detector + pose tracker, species proportions,
                       procedural bone geometry, quadruped rig
   skin/               skin check questionnaire (guide.ts) and its panel
@@ -213,10 +260,14 @@ the home screen releases the camera.
 2. Human full body: spine, ribs, pelvis, limbs (done).
 3. Dog and cat: species detection, animal pose model, skeleton rigs (done).
 4. Skin check: guided questionnaire with camera magnifier (done).
-5. Polish: scan modes, bone details on click, recording.
+5. Body systems: nerves, heart, blood vessels with animated flow, and the 3D
+   explorer (done).
+6. Polish: details on click, recording, muscles and organs.
 
 ## Asset credit
 
-Human bone meshes are derived from BodyParts3D, © The Database Center for Life
-Science, licensed under CC Attribution-Share Alike 2.1 Japan. The generated
-files in `public/models/human/` carry the same licence.
+Human bone, heart, vessel, lung and brain meshes are derived from BodyParts3D,
+© The Database Center for Life Science, licensed under CC Attribution-Share
+Alike 2.1 Japan. The generated files in `public/models/human/` carry the same
+licence. The routed limb, neck, face and chest-wall vessels and nerves are
+schematic.

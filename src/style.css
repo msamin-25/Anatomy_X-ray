@@ -302,7 +302,7 @@ canvas {
 
 .modes {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-top: 44px;
 }
@@ -777,6 +777,72 @@ body.dragging .upload {
   color: var(--text);
 }
 
+/* Body-system toggles: a coloured dot that lights up when the system is shown. */
+.seg .dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--dot);
+  opacity: 0.3;
+  vertical-align: 1px;
+  transition: opacity 0.15s, box-shadow 0.15s;
+}
+
+.seg button[aria-pressed='true'] .dot {
+  opacity: 1;
+  box-shadow: 0 0 8px var(--dot);
+}
+
+.legend {
+  position: fixed;
+  top: calc(84px + var(--safe-t));
+  left: calc(16px + var(--safe-l));
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--glass);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  list-style: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+  pointer-events: none;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.legend .dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--dot);
+  box-shadow: 0 0 8px var(--dot);
+}
+
+/* The 3D explorer: the stage takes drags and pinches. */
+body[data-mode='explore'] #stage {
+  cursor: grab;
+  touch-action: none;
+}
+
+body[data-mode='explore'] #stage:active {
+  cursor: grabbing;
+}
+
 .shutter {
   display: grid;
   place-items: center;
@@ -804,8 +870,8 @@ body.dragging .upload {
 .credit {
   position: fixed;
   right: calc(16px + var(--safe-r));
-  bottom: calc(16px + var(--safe-b));
-  max-width: 34vw;
+  bottom: calc(108px + var(--safe-b));
+  max-width: min(34vw, 420px);
   padding: 4px 10px;
   border-radius: 999px;
   background: var(--glass);
@@ -1230,6 +1296,16 @@ body.dragging .upload {
 
 /* ------------------------------------------------------------- responsive */
 
+@media (max-width: 1100px) {
+  .modes {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .mode-card {
+    min-height: 0;
+  }
+}
+
 @media (max-width: 900px) {
   .modes {
     grid-template-columns: 1fr;
@@ -1385,5 +1461,27 @@ body.dragging .upload {
 
   .toast {
     bottom: calc(110px + var(--safe-b));
+  }
+
+  .legend {
+    top: auto;
+    bottom: calc(108px + var(--safe-b));
+    left: calc(8px + var(--safe-l));
+    right: calc(8px + var(--safe-r));
+    flex-flow: row wrap;
+    justify-content: center;
+    gap: 4px 12px;
+    padding: 6px 10px;
+    background: transparent;
+    border: 0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    font-size: 10px;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  }
+
+  .legend .dot {
+    width: 7px;
+    height: 7px;
   }
 }

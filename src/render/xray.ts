@@ -50,8 +50,10 @@ export class XrayStyle {
   private readonly depth: ShaderMaterial;
   private readonly shade: ShaderMaterial;
   private readonly glow: ShaderMaterial;
+  private readonly glowStrength: number;
 
   constructor(glowStrength = 1, glow = 0xcfe9ff, shade = 0x06102e, shadeOpacity = 0.5) {
+    this.glowStrength = glowStrength;
     const make = (color: number, strength: number, isGlow: boolean) =>
       new ShaderMaterial({
         uniforms: {
@@ -74,6 +76,11 @@ export class XrayStyle {
     this.glow.depthWrite = false;
     this.glow.depthTest = false;
     this.glow.blending = AdditiveBlending;
+  }
+
+  /** Dims the glow (1 = full), so other body systems read clearly over the bones. */
+  setDim(factor: number): void {
+    this.glow.uniforms.uStrength.value = this.glowStrength * factor;
   }
 
   /** Wraps a bone geometry in a group whose `matrix` the rig sets directly. */

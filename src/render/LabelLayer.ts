@@ -3,6 +3,7 @@ import type { Stage } from './Stage';
 
 interface Placed {
   text: string;
+  color: string;
   width: number;
   /** Anchor point on screen. */
   x: number;
@@ -50,7 +51,7 @@ export class LabelLayer {
       const text = a.text.toUpperCase();
       if (!groups.has(a.entity)) groups.set(a.entity, []);
       groups.get(a.entity)!.push({
-        text, width: ctx.measureText(text).width, x: p.x, y: p.y, left: false, colX: 0, labelY: p.y,
+        text, color: a.color ?? '#5eead4', width: ctx.measureText(text).width, x: p.x, y: p.y, left: false, colX: 0, labelY: p.y,
       });
     }
     const all: Placed[] = [];
@@ -65,9 +66,9 @@ export class LabelLayer {
       ctx.lineTo(it.colX - dir * 14, it.labelY);
       ctx.lineTo(it.colX, it.labelY);
       ctx.stroke();
-      ctx.fillStyle = '#5eead4';
+      ctx.fillStyle = it.color;
       ctx.beginPath();
-      ctx.arc(it.x, it.y, 2.4, 0, Math.PI * 2);
+      ctx.arc(it.x, it.y, 2.6, 0, Math.PI * 2);
       ctx.fill();
       ctx.textAlign = it.left ? 'right' : 'left';
       ctx.fillStyle = '#f0fdfa';

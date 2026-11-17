@@ -4,11 +4,14 @@ import { LabelLayer } from './render/LabelLayer';
 import { Stage } from './render/Stage';
 import { SkinCheck } from './skin/SkinCheck';
 import type { AnimalPlugin } from './species/animal/AnimalPlugin';
+import { ExplorePlugin, sceneSource, type ExploreView } from './species/human/ExplorePlugin';
 import { HumanPlugin } from './species/human/HumanPlugin';
+import { humanModel } from './species/human/model';
+import type { Layer, Layers } from './species/human/systems';
 import type { FaceMode, LabelAnchor, SpeciesPlugin, ViewOptions } from './species/types';
 import { hydrateIcons, icon } from './ui/icons';
 
-type Mode = 'human' | 'animal' | 'skin';
+type Mode = 'human' | 'animal' | 'skin' | 'explore';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const params = new URLSearchParams(location.search);
@@ -17,22 +20,29 @@ hydrateIcons();
 const stage = new Stage($<HTMLCanvasElement>('stage'));
 const labels = new LabelLayer($<HTMLCanvasElement>('labels'), stage);
 const human = new HumanPlugin();
+const explore = new ExplorePlugin();
 /** Loaded on first use: it brings ONNX Runtime and a 54 MB pose model. */
 let animal: AnimalPlugin | null = null;
 let speciesOverride: 'dog' | 'cat' | null = null;
 const skin = new SkinCheck($('skinPanel'));
-const plugins: Partial<Record<Mode, SpeciesPlugin>> = { human };
+const plugins: Partial<Record<Mode, SpeciesPlugin>> = { human, explore };
 const status = $('status');
 const hud = $('hud');
 const hudText = $('hudText');
 const credit = $('credit');
 
+/** Body systems shown, kept separately for the live view and the 3D explorer. */
+const layersFor: Record<'human' | 'explore', Layers> = {
+  human: { bones: true, nerves: params.get('nerves') === '1', blood: params.get('blood') === '1' },
+  explore: { bones: true, nerves: true, blood: true },
+};
 const options: ViewOptions = {
   face: (params.get('face') as FaceMode) ?? 'half',
   hands: params.get('hands') !== '0',
-  body: params.get('body') === '1',
+  body: params.get('body') === '1' || layersFor.human.nerves || layersFor.human.blood,
+  layers: layersFor.human,
 };
-const MODES: Mode[] = ['human', 'animal', 'skin'];
+const MODES: Mode[] = ['human', 'animal', 'skin', 'explore'];
 let mode: Mode = MODES.includes(params.get('mode') as Mode) ? (params.get('mode') as Mode) : 'human';
 const species = params.get('species');
 if (species === 'dog' || species === 'cat') speciesOverride = species;
@@ -52,6 +62,7 @@ const loading: Partial<Record<Mode, Promise<void>>> = {};
 async function create(m: Mode): Promise<SpeciesPlugin> {
   if (m === 'human') return human;
   if (m === 'skin') return skin;
+  if (m === 'explore') return explore;
   setMessage('Loading animal mode');
   const { AnimalPlugin } = await import('./species/animal/AnimalPlugin');
   animal = new AnimalPlugin();
@@ -73,6 +84,19 @@ function load(m: Mode): Promise<void> {
   return loading[m];
 }
 
+/** Loads the heart, vessels and nerves the first time a layer needs them. */
+async function ensureSystems(): Promise<void> {
+  if (humanModel.systems) return;
+  setMessage('Loading heart, vessels and nerves');
+  try {
+    await humanModel.loadSystems(stage);
+    if (message === 'Loading heart, vessels and nerves') setMessage('');
+  } catch (err) {
+    console.error(err);
+    setMessage(`Could not load the body systems: ${err instanceof Error ? err.message : err}`, 'error');
+  }
+}
+
 function setMessage(text: string, kind: 'info' | 'error' = 'info'): void {
   message = text;
   messageKind = kind;
@@ -86,6 +110,7 @@ function showApp(inApp: boolean): void {
   $('appbar').hidden = !inApp;
   $('controls').hidden = !inApp;
   credit.hidden = !inApp;
+  if (!inApp) $('legend').hidden = true;
   if (!inApp) skin.hide();
   else if (mode === 'skin') skin.show();
 }
@@ -102,6 +127,10 @@ function toast(text: string): void {
 
 async function setMode(next: Mode): Promise<void> {
   mode = next;
+  if (next === 'human' || next === 'explore') options.layers = layersFor[next];
+  if (options.layers.nerves || options.layers.blood) {
+    if (next === 'human' || next === 'explore') void ensureSystems();
+  }
   active?.hide();
   active = null;
   anchors = [];
@@ -138,7 +167,7 @@ async function start(open: () => Promise<FrameSource>, camera: boolean): Promise
     showApp(true);
     torchOn = false;
     syncControls();
-    $('flip').hidden = !(next.live && (await hasSeveralCameras()));
+    $('flip').hidden = !next.live || !!next.scene || !(await hasSeveralCameras());
   } catch (err) {
     console.error(err);
     const denied = err instanceof DOMException && err.name === 'NotAllowedError';
@@ -186,6 +215,9 @@ function updateStatus(): void {
   } else if (!active) {
     text = 'Preparing';
     state = 'loading';
+  } else if (mode === 'explore') {
+    text = '3D model';
+    state = 'live';
   } else if (mode === 'animal' && animal) {
     const kind = animal.kind;
     text = kind ? `${kind === 'dog' ? 'Dog' : 'Cat'}${animal.override ? '' : ' detected'}` : 'Looking for a dog or cat';
@@ -208,6 +240,19 @@ function enter(target: Mode, camera: Facing): void {
 $('start').addEventListener('click', () => enter('human', 'user'));
 $('startPet').addEventListener('click', () => enter('animal', 'environment'));
 $('startSkin').addEventListener('click', () => enter('skin', 'environment'));
+$('startExplore').addEventListener('click', () => enterExplore());
+
+/** The 3D explorer needs no camera: any open camera is switched off. */
+function enterExplore(): void {
+  if (mode !== 'explore') void setMode('explore');
+  void start(async () => sceneSource(), false).then(() => {
+    if (!sessionHinted) toast(matchMedia('(pointer: coarse)').matches
+      ? 'Drag to turn · pinch to zoom · two fingers to move'
+      : 'Drag to turn · scroll to zoom · right-drag to move');
+    sessionHinted = true;
+  });
+}
+let sessionHinted = false;
 
 /** Back to the home screen; the camera is switched off. */
 $('home').addEventListener('click', () => {
@@ -296,6 +341,18 @@ function openFile(file: File): void {
 
 function syncControls(): void {
   document.body.dataset.mode = mode;
+  const anatomy = mode === 'human' || mode === 'explore';
+  document.querySelectorAll<HTMLElement>('.layers-only').forEach((el) => (el.hidden = !anatomy));
+  document.querySelectorAll<HTMLElement>('.explore-only').forEach((el) => (el.hidden = mode !== 'explore'));
+  document.querySelectorAll<HTMLButtonElement>('[data-layer]').forEach((b) => {
+    b.setAttribute('aria-pressed', String(options.layers[b.dataset.layer as Layer]));
+  });
+  $('spin').setAttribute('aria-pressed', String(explore.spin));
+  const legend = $('legend');
+  legend.hidden = !anatomy || !(options.layers.blood || options.layers.nerves) || $('appbar').hidden;
+  legend.querySelectorAll<HTMLElement>('[data-legend]').forEach((el) => {
+    el.hidden = !options.layers[el.dataset.legend as Layer];
+  });
   document.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => {
     b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
   });
@@ -310,8 +367,12 @@ function syncControls(): void {
   document.querySelectorAll<HTMLButtonElement>('[data-species]').forEach((b) => {
     b.setAttribute('aria-pressed', String(b.dataset.species === (speciesOverride ?? 'auto')));
   });
+  const anatomyCredit = options.layers.nerves || options.layers.blood
+    ? 'Anatomy: BodyParts3D © DBCLS, CC BY-SA 2.1 JP · limb vessels and nerves drawn schematically'
+    : 'Bone models: BodyParts3D © DBCLS, CC BY-SA 2.1 JP';
   credit.textContent = {
-    human: 'Bone models: BodyParts3D © DBCLS, CC BY-SA 2.1 JP',
+    human: anatomyCredit,
+    explore: anatomyCredit,
     animal: 'Pet pose: RTMPose AP-10K (OpenMMLab) · schematic bones',
     skin: 'Guidance based on NHS advice · not a diagnosis',
   }[mode];
@@ -331,9 +392,36 @@ document.querySelectorAll<HTMLButtonElement>('[data-face]').forEach((b) => {
 });
 document.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => {
   b.addEventListener('click', () => {
-    if (b.dataset.mode !== mode) void setMode(b.dataset.mode as Mode);
+    const target = b.dataset.mode as Mode;
+    if (target === mode) return;
+    if (target === 'explore') return enterExplore();
+    void setMode(target);
+    // Leaving the explorer: the camera modes need a camera again.
+    if (source?.scene) void startCamera(target === 'human' ? 'user' : 'environment');
   });
 });
+document.querySelectorAll<HTMLButtonElement>('[data-layer]').forEach((b) => {
+  b.addEventListener('click', () => {
+    const layer = b.dataset.layer as Layer;
+    const layers = options.layers;
+    const on = !layers[layer];
+    // Keep at least one system on screen.
+    if (!on && Object.values(layers).filter(Boolean).length === 1) return;
+    layers[layer] = on;
+    if (on && layer !== 'bones') {
+      void ensureSystems();
+      if (mode === 'human' && !options.body) {
+        options.body = true;
+        toast('Body tracking on: step back so your chest and arms are in view');
+      }
+    }
+    syncControls();
+  });
+});
+document.querySelectorAll<HTMLButtonElement>('[data-view]').forEach((b) => {
+  b.addEventListener('click', () => explore.setView(b.dataset.view as ExploreView));
+});
+$('spin').addEventListener('click', () => ((explore.spin = !explore.spin), syncControls()));
 document.querySelectorAll<HTMLButtonElement>('[data-species]').forEach((b) => {
   b.addEventListener('click', () => {
     speciesOverride = b.dataset.species === 'auto' ? null : (b.dataset.species as 'dog' | 'cat');
@@ -368,3 +456,4 @@ window.addEventListener('drop', (e) => {
 });
 const src = params.get('src');
 if (src) void start(() => openMedia(src, /\.(mp4|webm|mov)$/i.test(src)), false);
+else if (mode === 'explore') enterExplore();
