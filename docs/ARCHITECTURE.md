@@ -26,7 +26,8 @@ video has a new frame.
 | App | Vite + TypeScript | Static output, hosts anywhere |
 | Rendering | Three.js | GLB loading, custom shaders |
 | Human tracking | MediaPipe Tasks Vision | Face (478 points + head pose matrix + expression weights), hands (21 points), body (33 points), all on-device |
-| Animal tracking (phase 3) | RTMPose AP-10K via ONNX Runtime Web | Apache-licensed, covers dogs and cats |
+| Animal detection | MediaPipe Object Detector (EfficientDet-Lite0, COCO) | Finds the dog or cat box and tells the two apart |
+| Animal pose | RTMPose-m AP-10K via ONNX Runtime Web (wasm) | Apache-licensed, 17 keypoints, covers dogs and cats |
 | Asset pipeline | Python (`.venv`), trimesh | Converts and decimates source meshes to GLB |
 
 ## Coordinate spaces
@@ -84,8 +85,58 @@ interface SpeciesPlugin {
 }
 ```
 
-The human plugin is the reference. Dog and cat plugins will reuse the segment
-and block rigs with 2D keypoints placed on a fixed depth plane.
+The human plugin is the reference. `main.ts` keeps one plugin active and calls
+`hide()` on the other when the mode changes. The animal plugin is loaded with
+a dynamic `import()` on first use, so human mode never downloads ONNX Runtime
+or the 54 MB pose model.
+
+## Animal mode
+
+```
+frame ─ ObjectDetector (dog|cat box, species vote)
+          └─ square crop, padded ×1.25, 256×256
+               └─ RTMPose AP-10K (async, ONNX Runtime)   17 keypoints
+                    └─ AnimalRig   keypoints -> 3D joints -> bone matrices
+```
+
+Pose inference is asynchronous: `AnimalTracker.track` starts a run only when
+the previous one has finished, and the rig always poses from the latest
+result, so the render loop never waits. When the detector misses a frame, the
+crop falls back to the box around the last confident pose.
+
+**Keypoint meaning.** AP-10K marks the joints visible from outside, which sit
+lower than their names: its "shoulder" is at the elbow, "elbow" at the carpus,
+"hip" at the stifle and "knee" at the hock. The rig uses them that way and
+places the hidden shoulder and hip joints between the body line and those
+points.
+
+**Depth from one camera.** Keypoints are 2D, so the rig recovers depth from
+proportions (`species.ts`, in units of the neck-to-tail-root distance):
+
+1. Scale: the second-largest ratio of a measured to an expected segment
+   length. Segments only shrink when they turn away from the camera, so the
+   largest ratios are the honest ones; skipping the top one ignores a single
+   misplaced keypoint.
+2. Forward: the 2D neck-to-tail vector plus the depth its foreshortening
+   implies. The sign comes from left-minus-right offsets of paired points (a
+   subject facing the camera shows its left side on the image right).
+3. Left: from those paired offsets when they are large (front views),
+   otherwise dorsal × forward, with dorsal pointing away from the paws.
+4. Each keypoint is lifted along its camera ray onto the sagittal plane of its
+   own side of the body. The skull is placed separately: the nose stays on its
+   ray at the depth that the eye-to-nose foreshortening implies.
+
+**Bones.** There are no open-licensed dog or cat bone meshes to rig, so
+`geometry.ts` builds schematic bones from lathes, ellipsoids and tubes. Each
+piece is authored in its own frame (+X subject's left, +Y along the bone, +Z =
+X × Y) at its expected length, and the rig stretches it between two joints:
+`segmentFrame(from, to, left) · scale(s, length / authored length, s)`. No rest
+pose file is needed. Thoracic vertebrae carry their ribs and a piece of the
+sternum, so the rib cage bends with the spine. The tail is not tracked (AP-10K
+only marks its root) and hangs from it.
+
+Known limits: a sitting animal seen from the front is ambiguous and looks
+busy; EfficientDet-Lite0 sometimes calls slim cats dogs (hence the override).
 
 ## Layout
 
@@ -93,18 +144,21 @@ and block rigs with 2D keypoints placed on a fixed depth plane.
 docs/                 this file
 tools/                Python asset pipeline (run with .venv)
 public/models/human/  human.glb + human.json (generated, committed)
+public/models/animal/ rtmpose-ap10k.onnx (fetched by `npm run animal-model`)
 src/
-  main.ts             bootstrap, UI wiring
+  main.ts             bootstrap, UI wiring, mode switching
   core/               video source, filters, math
   render/             stage, X-ray material, labels, face mask
   species/human/      trackers, skull / hand / body rigs
+  species/animal/     detector + pose tracker, species proportions,
+                      procedural bone geometry, quadruped rig
 ```
 
 ## Phases
 
-1. Human skull and hands (reproduces the reference video).
-2. Human full body: spine, ribs, pelvis, limbs.
-3. Dog and cat: species detection, animal pose model, skeleton rigs.
+1. Human skull and hands (reproduces the reference video) (done).
+2. Human full body: spine, ribs, pelvis, limbs (done).
+3. Dog and cat: species detection, animal pose model, skeleton rigs (done).
 4. Polish: scan modes, bone details on click, recording.
 
 ## Asset credit

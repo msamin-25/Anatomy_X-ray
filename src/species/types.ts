@@ -33,5 +33,7 @@ export interface SpeciesPlugin {
   load(stage: Stage, onProgress: (message: string) => void): Promise<void>;
   /** Tracks the frame, poses the skeleton and returns the labels to draw. */
   update(frame: FrameInput, options: ViewOptions): LabelAnchor[];
+  /** Hides everything this plugin draws, while another plugin is active. */
+  hide(): void;
   dispose(): void;
 }

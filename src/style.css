@@ -62,7 +62,33 @@ p {
   line-height: 1.5;
 }
 
-.hint,
+.starts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.pick {
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.pick input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.pick:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
 #status {
   font-size: 13px;
   min-height: 1.5em;
@@ -111,7 +137,7 @@ button.primary {
 #controls {
   position: fixed;
   left: 50%;
-  bottom: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   display: flex;
   flex-wrap: wrap;
@@ -139,10 +165,26 @@ button.primary {
   border-color: transparent;
 }
 
+#controls [hidden] {
+  display: none;
+}
+
+#hud {
+  position: fixed;
+  left: calc(12px + env(safe-area-inset-left));
+  top: calc(10px + env(safe-area-inset-top));
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-shadow: 0 0 6px rgba(0, 8, 24, 0.9);
+}
+
 #credit {
   position: fixed;
-  right: 12px;
-  top: 10px;
+  right: calc(12px + env(safe-area-inset-right));
+  top: calc(10px + env(safe-area-inset-top));
   font-size: 11px;
   color: var(--muted);
   opacity: 0.8;
@@ -151,6 +193,19 @@ button.primary {
 @media (max-width: 600px) {
   #controls {
     border-radius: 20px;
-    bottom: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    gap: 6px;
+    padding: 6px;
+  }
+
+  #controls button {
+    padding: 7px 11px;
+  }
+
+  #credit {
+    top: auto;
+    bottom: 2px;
+    right: 8px;
+    font-size: 9px;
   }
 }

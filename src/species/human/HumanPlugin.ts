@@ -104,6 +104,13 @@ export class HumanPlugin implements SpeciesPlugin {
     return labels;
   }
 
+  hide(): void {
+    this.skull?.reset();
+    this.hands?.L.hide();
+    this.hands?.R.hide();
+    this.body?.hide();
+  }
+
   flipFaceSide(): void {
     this.skull.side = this.skull.side === 'L' ? 'R' : 'L';
   }

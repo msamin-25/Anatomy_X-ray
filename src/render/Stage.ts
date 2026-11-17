@@ -26,18 +26,27 @@ export class Stage {
     this.source = source;
     this.scene.background = source.texture;
     this.mirror = source.mirror;
-    this.aspect = source.width / source.height;
-    this.camera.aspect = this.aspect;
-    this.camera.updateProjectionMatrix();
     this.layout();
+  }
+
+  /** True when the frame size changed (a phone was rotated) since the last layout. */
+  needsLayout(): boolean {
+    const s = this.source;
+    return !!s && s.width > 0 && s.height > 0 && Math.abs(s.width / s.height - this.aspect) > 1e-3;
   }
 
   /** Fits the canvas over the viewport ("cover") and picks a render resolution. */
   layout(): void {
+    const source = this.source;
+    if (source && source.width > 0 && source.height > 0) {
+      this.aspect = source.width / source.height;
+      this.camera.aspect = this.aspect;
+      this.camera.updateProjectionMatrix();
+    }
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     // Cover the viewport for a live camera; show the whole frame for a file.
-    const cover = this.source?.mirror ?? true;
+    const cover = source?.live ?? true;
     const wide = vw / vh > this.aspect;
     const w = wide === cover ? vw : vh * this.aspect;
     const h = wide === cover ? vw / this.aspect : vh;
@@ -48,7 +57,7 @@ export class Stage {
     style.top = `${(vh - h) / 2}px`;
     style.transform = this.mirror ? 'scaleX(-1)' : '';
     const dpr = Math.min(window.devicePixelRatio, 2);
-    const maxH = this.source ? Math.max(this.source.height, 720) : 720;
+    const maxH = source ? Math.max(source.height, 720) : 720;
     const rh = Math.min(h * dpr, maxH * 1.5);
     this.renderer.setSize(Math.round(rh * this.aspect), Math.round(rh), false);
   }
