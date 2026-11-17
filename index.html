@@ -3,57 +3,164 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#05070c" />
-    <title>Anatomy X-ray</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2305070c'/%3E%3Ccircle cx='16' cy='14' r='8' fill='none' stroke='%237fd4ff' stroke-width='2.5'/%3E%3Cpath d='M12 22v4m4-4v4m4-4v4' stroke='%237fd4ff' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E" />
+    <meta name="theme-color" content="#060a12" />
+    <meta name="description" content="See a live, labelled X-ray view of your skeleton or your pet's, or get guided advice about a spot on your skin. Runs privately in your browser." />
+    <title>Anatomy X-ray · Live anatomy and skin guidance</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
     <canvas id="stage"></canvas>
     <canvas id="labels"></canvas>
+    <div id="flash" aria-hidden="true"></div>
 
-    <section id="intro">
-      <h1>Anatomy X-ray</h1>
-      <p>See the skeleton under your skin, or your dog’s or cat’s, live, or check a spot on your skin. Video stays on this device.</p>
-      <div class="starts">
-        <button id="start" class="primary">X-ray me</button>
-        <button id="startPet" class="primary">X-ray my pet</button>
-        <button id="startSkin" class="primary">Check my skin</button>
-      </div>
-      <label class="pick">or choose a photo or video<input id="file" type="file" accept="image/*,video/*" /></label>
-      <p id="status" role="status"></p>
-    </section>
+    <!-- Home -->
+    <div id="intro" class="home">
+      <div class="home-inner">
+        <header class="topbar">
+          <span class="brand">
+            <span class="brand-mark" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2" /><rect x="9.5" y="7" width="5" height="2.6" rx="1.3" fill="#fff" stroke="none" /><rect x="9.5" y="10.7" width="5" height="2.6" rx="1.3" fill="#fff" stroke="none" /><rect x="9.5" y="14.4" width="5" height="2.6" rx="1.3" fill="#fff" stroke="none" /></svg>
+            </span>
+            Anatomy X-ray
+          </span>
+          <span class="pill"><i data-icon="shield-check" data-size="14"></i> On-device · Private</span>
+        </header>
 
-    <p id="hud" role="status"></p>
-    <aside id="skinPanel" aria-label="Skin check" hidden></aside>
+        <main>
+          <section class="hero">
+            <p class="eyebrow">Live anatomy · On-device AI</p>
+            <h1>See the skeleton <span class="accent">beneath the skin.</span></h1>
+            <p class="lede">
+              Point your camera at yourself or your pet for a live, labelled X-ray view, or get guided advice about a
+              spot on your skin. Everything runs privately in your browser.
+            </p>
+          </section>
 
-    <nav id="controls" hidden>
-      <div class="segmented" role="group" aria-label="Subject">
-        <button data-mode="human" aria-pressed="true">Human</button>
-        <button data-mode="animal" aria-pressed="false">Dog / Cat</button>
-        <button data-mode="skin" aria-pressed="false">Skin</button>
+          <section class="modes" aria-label="Choose a mode">
+            <button id="start" class="mode-card" style="--tint: #2dd4bf">
+              <span class="mode-icon"><i data-icon="scan-face" data-size="22"></i></span>
+              <span class="mode-title">Human skeleton</span>
+              <span class="mode-text">Skull, hands and full body tracked in real time, with every bone labelled.</span>
+              <span class="mode-meta">
+                <span><i data-icon="camera" data-size="14"></i> Front camera</span>
+                <span><i data-icon="cpu" data-size="14"></i> Real-time tracking</span>
+              </span>
+              <span class="mode-cta">Start <i data-icon="chevron-right" data-size="16"></i></span>
+            </button>
+            <button id="startPet" class="mode-card" style="--tint: #38bdf8">
+              <span class="mode-icon"><i data-icon="paw-print" data-size="22"></i></span>
+              <span class="mode-title">Dog &amp; cat skeleton</span>
+              <span class="mode-text">Detects your pet and overlays a live skeleton that follows its pose.</span>
+              <span class="mode-meta">
+                <span><i data-icon="camera" data-size="14"></i> Rear camera</span>
+                <span><i data-icon="info" data-size="14"></i> 75 MB on first use</span>
+              </span>
+              <span class="mode-cta">Start <i data-icon="chevron-right" data-size="16"></i></span>
+            </button>
+            <button id="startSkin" class="mode-card" style="--tint: #a78bfa">
+              <span class="mode-icon"><i data-icon="scan-search" data-size="22"></i></span>
+              <span class="mode-title">Skin check</span>
+              <span class="mode-text">A magnifier and a few short questions: how urgent it is, who to see, and common causes.</span>
+              <span class="mode-meta">
+                <span><i data-icon="camera" data-size="14"></i> Rear camera</span>
+                <span><i data-icon="stethoscope" data-size="14"></i> Based on NHS advice</span>
+              </span>
+              <span class="mode-cta">Start <i data-icon="chevron-right" data-size="16"></i></span>
+            </button>
+          </section>
+
+          <label class="upload">
+            <span class="upload-icon"><i data-icon="image-up" data-size="20"></i></span>
+            <span class="upload-text">
+              <strong>Open a photo or video</strong>
+              <span class="on-fine">Drop a file anywhere, or browse your device</span>
+              <span class="on-coarse">Choose from your photos or files</span>
+            </span>
+            <span class="btn btn-secondary">Browse</span>
+            <input id="file" type="file" accept="image/*,video/*" />
+          </label>
+
+          <p id="status" class="home-status" role="status"></p>
+
+          <section class="trust" aria-label="About this app">
+            <div>
+              <span class="trust-icon"><i data-icon="shield-check"></i></span>
+              <div>
+                <h3>Private by design</h3>
+                <p>Video is processed on your device. Nothing is uploaded or stored.</p>
+              </div>
+            </div>
+            <div>
+              <span class="trust-icon"><i data-icon="badge-check"></i></span>
+              <div>
+                <h3>Free, no sign-up</h3>
+                <p>No account, no ads, no tracking. Open it and start.</p>
+              </div>
+            </div>
+            <div>
+              <span class="trust-icon"><i data-icon="stethoscope"></i></span>
+              <div>
+                <h3>Not a medical device</h3>
+                <p>For education and guidance only. It does not diagnose; see a doctor if you are worried.</p>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <footer class="home-foot">
+          <p>
+            Bone models: <a href="https://lifesciencedb.jp/bp3d/" target="_blank" rel="noopener">BodyParts3D</a>, © DBCLS,
+            CC BY-SA 2.1 JP · Pet pose: RTMPose AP-10K, OpenMMLab (Apache 2.0) · Tracking: MediaPipe (Apache 2.0) ·
+            Skin guidance: <a href="https://www.nhs.uk/conditions/" target="_blank" rel="noopener">nhs.uk</a>
+          </p>
+        </footer>
       </div>
-      <div class="segmented human-only" role="group" aria-label="Face reveal">
-        <button data-face="half" aria-pressed="true">Half</button>
-        <button data-face="full" aria-pressed="false">Full</button>
-        <button data-face="off" aria-pressed="false">Off</button>
+    </div>
+
+    <!-- In-app chrome -->
+    <header id="appbar" class="appbar" hidden>
+      <button id="home" class="icon-btn" aria-label="Back to home" title="Home"><i data-icon="arrow-left"></i></button>
+      <div class="tabs" role="group" aria-label="Mode">
+        <button data-mode="human" aria-pressed="true"><i data-icon="scan-face" data-size="18"></i><span>Human</span></button>
+        <button data-mode="animal" aria-pressed="false"><i data-icon="paw-print" data-size="18"></i><span>Pet</span></button>
+        <button data-mode="skin" aria-pressed="false"><i data-icon="scan-search" data-size="18"></i><span>Skin</span></button>
       </div>
-      <button id="side" class="human-only" title="Switch which half of the face is revealed">Flip side</button>
-      <button id="hands" class="human-only" aria-pressed="true">Hands</button>
-      <button id="body" class="human-only" aria-pressed="false">Body</button>
-      <div class="segmented animal-only" role="group" aria-label="Species" hidden>
-        <button data-species="auto" aria-pressed="true">Auto</button>
-        <button data-species="dog" aria-pressed="false">Dog</button>
-        <button data-species="cat" aria-pressed="false">Cat</button>
+      <p id="hud" class="status-chip" role="status" data-state="idle"><span class="status-dot"></span><span id="hudText">Starting</span></p>
+    </header>
+
+    <aside id="skinPanel" class="panel" aria-label="Skin check" hidden></aside>
+
+    <nav id="controls" class="toolbar" aria-label="Camera tools" hidden>
+      <div class="tool-group human-only" role="group" aria-label="Face reveal">
+        <span class="tool-label">Face</span>
+        <span class="seg">
+          <button data-face="half" aria-pressed="true">Half</button>
+          <button data-face="full" aria-pressed="false">Full</button>
+          <button data-face="off" aria-pressed="false">Off</button>
+        </span>
       </div>
-      <button id="zoom" class="skin-only" hidden title="Magnify the picture">Zoom 1×</button>
-      <button id="torch" class="skin-only" hidden aria-pressed="false" title="Turn the phone's light on or off">Light</button>
-      <button id="savePhoto" class="skin-only" hidden title="Save what the camera sees">Save photo</button>
-      <button id="flip" hidden title="Switch between the front and rear camera">Flip camera</button>
-      <button id="labelsToggle" aria-pressed="true">Labels</button>
+      <button id="side" class="tool human-only" title="Switch which half of the face is revealed"><i data-icon="flip-horizontal"></i><span>Flip side</span></button>
+      <button id="hands" class="tool human-only" aria-pressed="true"><i data-icon="hand"></i><span>Hands</span></button>
+      <button id="body" class="tool human-only" aria-pressed="false"><i data-icon="person-standing"></i><span>Body</span></button>
+      <div class="tool-group animal-only" role="group" aria-label="Species" hidden>
+        <span class="tool-label">Species</span>
+        <span class="seg">
+          <button data-species="auto" aria-pressed="true">Auto</button>
+          <button data-species="dog" aria-pressed="false">Dog</button>
+          <button data-species="cat" aria-pressed="false">Cat</button>
+        </span>
+      </div>
+      <button id="zoom" class="tool skin-only" hidden title="Magnify the picture"><i data-icon="zoom-in"></i><span id="zoomLabel">1×</span></button>
+      <button id="savePhoto" class="shutter skin-only" hidden aria-label="Save photo" title="Save photo"><i data-icon="camera" data-size="26"></i></button>
+      <button id="torch" class="tool skin-only" hidden aria-pressed="false" title="Turn the light on or off"><i data-icon="flashlight"></i><span>Light</span></button>
+      <button id="labelsToggle" class="tool" aria-pressed="true"><i data-icon="tags"></i><span>Labels</span></button>
+      <button id="flip" class="tool" hidden title="Switch between the front and rear camera"><i data-icon="switch-camera"></i><span>Camera</span></button>
     </nav>
 
-    <footer id="credit">Bone models: BodyParts3D © DBCLS, CC BY-SA 2.1 JP</footer>
+    <p id="credit" class="credit" hidden></p>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

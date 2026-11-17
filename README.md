@@ -13,10 +13,14 @@ npm run animal-model   # once: downloads the dog/cat pose model (about 50 MB)
 npm run dev
 ```
 
-Open the printed URL, press **Start camera** and allow camera access. You can
-also drop an image or video file onto the page.
+Open the printed URL, pick a mode on the home screen (**Human skeleton**,
+**Dog & cat skeleton** or **Skin check**) and allow camera access. You can also
+open or drop an image or video file. The back arrow returns to the home screen
+and switches the camera off.
 
-Controls: **Human / Dog / Cat / Skin** switches the mode. In human mode,
+In the camera view, the tabs at the top switch between **Human**, **Pet** and
+**Skin**, and the chip beside them shows what is happening (live, loading,
+looking for a pet). The toolbar at the bottom holds the tools for the mode. In human mode,
 **Half / Full / Off** set how much of the face is revealed, **Flip side**
 switches the revealed half, and **Hands**, **Body** and **Labels** toggle those
 layers. In animal mode the species is detected automatically; **Dog** or

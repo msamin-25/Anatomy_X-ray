@@ -193,7 +193,19 @@ src/
   species/animal/     detector + pose tracker, species proportions,
                       procedural bone geometry, quadruped rig
   skin/               skin check questionnaire (guide.ts) and its panel
+  ui/                 icons (Lucide, ISC licence) as inline SVG
+  style.css           design tokens and all interface styles
 ```
+
+## Interface
+
+A home screen (mode cards, file picker, privacy notes, credits) and a camera
+view with a top bar (back to home, mode tabs, status chip) and a bottom
+toolbar whose tools depend on the mode. Styles are built on the tokens at the
+top of `style.css`: Inter (self-hosted via `@fontsource-variable/inter`), a
+dark clinical palette with a teal accent, one radius and shadow scale, 44 px
+touch targets, and reduced motion when the system asks for it. Going back to
+the home screen releases the camera.
 
 ## Phases
 

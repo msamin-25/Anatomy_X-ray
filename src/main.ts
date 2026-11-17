@@ -1,3 +1,4 @@
+import '@fontsource-variable/inter';
 import { hasSeveralCameras, openCamera, openMedia, type Facing, type FrameSource } from './core/source';
 import { LabelLayer } from './render/LabelLayer';
 import { Stage } from './render/Stage';
@@ -5,11 +6,13 @@ import { SkinCheck } from './skin/SkinCheck';
 import type { AnimalPlugin } from './species/animal/AnimalPlugin';
 import { HumanPlugin } from './species/human/HumanPlugin';
 import type { FaceMode, LabelAnchor, SpeciesPlugin, ViewOptions } from './species/types';
+import { hydrateIcons, icon } from './ui/icons';
 
 type Mode = 'human' | 'animal' | 'skin';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const params = new URLSearchParams(location.search);
+hydrateIcons();
 
 const stage = new Stage($<HTMLCanvasElement>('stage'));
 const labels = new LabelLayer($<HTMLCanvasElement>('labels'), stage);
@@ -19,9 +22,9 @@ let animal: AnimalPlugin | null = null;
 let speciesOverride: 'dog' | 'cat' | null = null;
 const skin = new SkinCheck($('skinPanel'));
 const plugins: Partial<Record<Mode, SpeciesPlugin>> = { human };
-const startButton = $<HTMLButtonElement>('start');
 const status = $('status');
 const hud = $('hud');
+const hudText = $('hudText');
 const credit = $('credit');
 
 const options: ViewOptions = {
@@ -40,6 +43,7 @@ let anchors: LabelAnchor[] = [];
 let lastTime = 0;
 let frames = 0;
 let message = '';
+let messageKind: 'info' | 'error' = 'info';
 /** Skin mode: the phone's light (where the camera supports it). */
 let torchOn = false;
 
@@ -69,9 +73,31 @@ function load(m: Mode): Promise<void> {
   return loading[m];
 }
 
-function setMessage(text: string): void {
+function setMessage(text: string, kind: 'info' | 'error' = 'info'): void {
   message = text;
+  messageKind = kind;
   status.textContent = text;
+  status.dataset.kind = kind;
+}
+
+/** Shows the camera view's chrome, or the home screen. */
+function showApp(inApp: boolean): void {
+  $('intro').hidden = inApp;
+  $('appbar').hidden = !inApp;
+  $('controls').hidden = !inApp;
+  credit.hidden = !inApp;
+  if (!inApp) skin.hide();
+  else if (mode === 'skin') skin.show();
+}
+
+let toastTimer = 0;
+function toast(text: string): void {
+  const el = $('toast');
+  el.innerHTML = `${icon('check', 16)}<span></span>`;
+  el.querySelector('span')!.textContent = text;
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => (el.hidden = true), 2600);
 }
 
 async function setMode(next: Mode): Promise<void> {
@@ -85,10 +111,10 @@ async function setMode(next: Mode): Promise<void> {
     await load(next);
     if (mode !== next) return;
     active = plugins[next] ?? null;
-    if (next === 'skin') skin.show();
+    if (next === 'skin' && !$('appbar').hidden) skin.show();
   } catch (err) {
     console.error(err);
-    setMessage(`Could not load: ${err instanceof Error ? err.message : err}`);
+    setMessage(`Could not load: ${err instanceof Error ? err.message : err}`, 'error');
   }
 }
 
@@ -108,8 +134,8 @@ async function start(open: () => Promise<FrameSource>, camera: boolean): Promise
     source = next;
     stage.setSource(next);
     lastTime = 0;
-    $('intro').hidden = true;
-    $('controls').hidden = false;
+    if (messageKind === 'error') setMessage('');
+    showApp(true);
     torchOn = false;
     syncControls();
     $('flip').hidden = !(next.live && (await hasSeveralCameras()));
@@ -119,12 +145,9 @@ async function start(open: () => Promise<FrameSource>, camera: boolean): Promise
     const text = denied
       ? 'Camera access was blocked. Allow it in the browser settings, or choose a photo or video.'
       : `Could not start: ${err instanceof Error ? err.message : err}`;
-    setMessage(text);
-    if (!source) {
-      // The old camera was released; go back to the start screen to retry.
-      $('intro').hidden = false;
-      $('controls').hidden = true;
-    }
+    setMessage(text, 'error');
+    // The old camera was released; go back to the start screen to retry.
+    if (!source) showApp(false);
   }
 }
 
@@ -149,30 +172,53 @@ function tick(now: number): void {
   }
   stage.render();
   labels.draw(showLabels ? anchors : []);
-  hud.textContent = message || (mode === 'animal' && active ? animalStatus() : '');
   if (mode === 'skin') anchors = [];
+  updateStatus();
 }
 
-function animalStatus(): string {
-  if (!animal) return '';
-  const kind = animal.kind;
-  const text = kind ? kind[0].toUpperCase() + kind.slice(1) + (animal.override ? '' : ' (detected)') : 'Looking for a dog or cat';
-  return params.has('debug') ? `${text} · pose ${animal.tracker.inferenceMs.toFixed(0)} ms` : text;
+/** The status chip: loading and errors first, then what the camera view is doing. */
+function updateStatus(): void {
+  let text: string;
+  let state: string;
+  if (message) {
+    text = message;
+    state = messageKind === 'error' ? 'error' : 'loading';
+  } else if (!active) {
+    text = 'Preparing';
+    state = 'loading';
+  } else if (mode === 'animal' && animal) {
+    const kind = animal.kind;
+    text = kind ? `${kind === 'dog' ? 'Dog' : 'Cat'}${animal.override ? '' : ' detected'}` : 'Looking for a dog or cat';
+    if (params.has('debug')) text += ` · ${animal.tracker.inferenceMs.toFixed(0)} ms`;
+    state = kind ? 'live' : 'search';
+  } else {
+    text = source?.live ? 'Live' : source?.el instanceof HTMLVideoElement ? 'Video' : 'Photo';
+    state = 'live';
+  }
+  if (hudText.textContent !== text) hudText.textContent = text;
+  if (hud.dataset.state !== state) hud.dataset.state = state;
 }
 requestAnimationFrame(tick);
 
-// Controls
-startButton.addEventListener('click', () => {
-  if (mode !== 'human') void setMode('human');
-  void startCamera('user');
-});
-$('startPet').addEventListener('click', () => {
-  if (mode !== 'animal') void setMode('animal');
-  void startCamera('environment');
-});
-$('startSkin').addEventListener('click', () => {
-  if (mode !== 'skin') void setMode('skin');
-  void startCamera('environment');
+// Home: each mode card opens its mode with the camera that suits it.
+function enter(target: Mode, camera: Facing): void {
+  if (mode !== target) void setMode(target);
+  void startCamera(camera);
+}
+$('start').addEventListener('click', () => enter('human', 'user'));
+$('startPet').addEventListener('click', () => enter('animal', 'environment'));
+$('startSkin').addEventListener('click', () => enter('skin', 'environment'));
+
+/** Back to the home screen; the camera is switched off. */
+$('home').addEventListener('click', () => {
+  active?.hide();
+  anchors = [];
+  resetSkinCamera();
+  const old = source;
+  source = null;
+  old?.dispose();
+  showApp(false);
+  if (messageKind === 'error') setMessage('');
 });
 
 // Skin mode: the camera works as a magnifier.
@@ -206,6 +252,10 @@ $('savePhoto').addEventListener('click', () => void savePhoto());
 /** Saves the magnified centre of the camera frame, unmirrored, as a JPEG on this device. */
 async function savePhoto(): Promise<void> {
   if (!source) return;
+  const flash = $('flash');
+  flash.classList.remove('on');
+  void flash.offsetWidth; // restart the animation
+  flash.classList.add('on');
   const w = source.width / stage.zoom;
   const h = source.height / stage.zoom;
   const canvas = document.createElement('canvas');
@@ -230,6 +280,7 @@ async function savePhoto(): Promise<void> {
   a.download = file.name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  toast('Photo saved');
 }
 
 $('flip').addEventListener('click', () => void startCamera(facing === 'user' ? 'environment' : 'user'));
@@ -244,6 +295,7 @@ function openFile(file: File): void {
 }
 
 function syncControls(): void {
+  document.body.dataset.mode = mode;
   document.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => {
     b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
   });
@@ -252,14 +304,15 @@ function syncControls(): void {
   document.querySelectorAll<HTMLElement>('.skin-only').forEach((el) => (el.hidden = mode !== 'skin'));
   $('torch').hidden = mode !== 'skin' || !torchSupported();
   $('torch').setAttribute('aria-pressed', String(torchOn));
-  $('zoom').textContent = `Zoom ${stage.zoom}×`;
+  $('zoomLabel').textContent = `${stage.zoom}×`;
+  $('zoom').setAttribute('aria-label', `Zoom, ${stage.zoom} times`);
   $('labelsToggle').hidden = mode === 'skin';
   document.querySelectorAll<HTMLButtonElement>('[data-species]').forEach((b) => {
     b.setAttribute('aria-pressed', String(b.dataset.species === (speciesOverride ?? 'auto')));
   });
   credit.textContent = {
     human: 'Bone models: BodyParts3D © DBCLS, CC BY-SA 2.1 JP',
-    animal: 'Pose: RTMPose AP-10K (OpenMMLab, Apache 2.0) · bones are schematic',
+    animal: 'Pet pose: RTMPose AP-10K (OpenMMLab) · schematic bones',
     skin: 'Guidance based on NHS advice · not a diagnosis',
   }[mode];
   document.querySelectorAll<HTMLButtonElement>('[data-face]').forEach((b) => {
@@ -300,9 +353,16 @@ window.addEventListener('resize', () => {
 });
 
 // Dropped files, and ?src= for testing without a camera.
-window.addEventListener('dragover', (e) => e.preventDefault());
+window.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  document.body.classList.add('dragging');
+});
+window.addEventListener('dragleave', (e) => {
+  if (!e.relatedTarget) document.body.classList.remove('dragging');
+});
 window.addEventListener('drop', (e) => {
   e.preventDefault();
+  document.body.classList.remove('dragging');
   const file = e.dataTransfer?.files[0];
   if (file) openFile(file);
 });

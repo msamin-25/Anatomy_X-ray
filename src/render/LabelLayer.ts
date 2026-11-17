@@ -38,7 +38,8 @@ export class LabelLayer {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
     if (!anchors.length) return;
-    ctx.font = '600 11px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
+    ctx.font = '600 11px "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
+    ctx.letterSpacing = '0.04em';
     ctx.textBaseline = 'middle';
     ctx.lineWidth = 1;
 
@@ -58,18 +59,19 @@ export class LabelLayer {
 
     for (const it of all) {
       const dir = it.left ? -1 : 1;
-      ctx.strokeStyle = 'rgba(210, 236, 255, 0.75)';
+      ctx.strokeStyle = 'rgba(204, 251, 241, 0.7)';
       ctx.beginPath();
       ctx.moveTo(it.x, it.y);
       ctx.lineTo(it.colX - dir * 14, it.labelY);
       ctx.lineTo(it.colX, it.labelY);
       ctx.stroke();
-      ctx.fillStyle = '#e6f5ff';
+      ctx.fillStyle = '#5eead4';
       ctx.beginPath();
-      ctx.arc(it.x, it.y, 2.2, 0, Math.PI * 2);
+      ctx.arc(it.x, it.y, 2.4, 0, Math.PI * 2);
       ctx.fill();
       ctx.textAlign = it.left ? 'right' : 'left';
-      ctx.shadowColor = 'rgba(0, 8, 24, 0.9)';
+      ctx.fillStyle = '#f0fdfa';
+      ctx.shadowColor = 'rgba(2, 8, 18, 0.95)';
       ctx.shadowBlur = 6;
       ctx.fillText(it.text, it.colX + dir * PAD, it.labelY);
       ctx.shadowBlur = 0;
