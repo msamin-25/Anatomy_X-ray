@@ -13,6 +13,8 @@ export class Stage {
   readonly renderer: WebGLRenderer;
   aspect = 16 / 9;
   mirror = false;
+  /** Digital magnification, applied with CSS around the centre of the screen. */
+  zoom = 1;
   private source: FrameSource | null = null;
   private readonly tmp = new Vector3();
 
@@ -55,11 +57,21 @@ export class Stage {
     style.height = `${h}px`;
     style.left = `${(vw - w) / 2}px`;
     style.top = `${(vh - h) / 2}px`;
-    style.transform = this.mirror ? 'scaleX(-1)' : '';
+    this.applyZoom();
     const dpr = Math.min(window.devicePixelRatio, 2);
     const maxH = source ? Math.max(source.height, 720) : 720;
     const rh = Math.min(h * dpr, maxH * 1.5);
     this.renderer.setSize(Math.round(rh * this.aspect), Math.round(rh), false);
+  }
+
+  setZoom(zoom: number): void {
+    this.zoom = zoom;
+    this.applyZoom();
+  }
+
+  private applyZoom(): void {
+    const z = this.zoom;
+    this.canvas.style.transform = this.mirror || z !== 1 ? `scale(${this.mirror ? -z : z}, ${z})` : '';
   }
 
   /** Projects a camera-space point to viewport pixels, honouring mirroring. */

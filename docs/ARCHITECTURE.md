@@ -138,6 +138,46 @@ only marks its root) and hangs from it.
 Known limits: a sitting animal seen from the front is ambiguous and looks
 busy; EfficientDet-Lite0 sometimes calls slim cats dogs (hence the override).
 
+## Skin mode
+
+`src/skin/guide.ts` holds the questionnaire, the urgency rules and the list of
+common causes as plain data; `SkinCheck.ts` renders it in a side panel and
+fits the plugin interface so the main loop treats it like the other modes. The
+camera is only a magnifier here: CSS zoom around the screen centre, the torch
+through `MediaStreamTrack.applyConstraints` where the camera supports it, and
+**Save photo**, which crops the zoomed region from the full-resolution frame
+(the share sheet on touch devices, a download elsewhere). Skin mode asks the
+camera for 1920 pixels on the long side so zoomed photos stay sharp.
+
+Urgency has four levels: emergency (anaphylaxis, a non-blanching rash with
+feeling unwell, widespread blistering or peeling, signs of sepsis), today
+(painful hot swollen skin, a band-shaped painful rash, rash with fever, a
+severe rash after a new medicine), within two weeks (a mole with ABCDE warning
+signs, a sore that has not healed in 4 weeks, impetigo, scabies, anything
+lasting over 4 weeks) and pharmacist/self-care. The rules follow the NHS
+condition pages. Common causes are ranked by how many answers match; causes
+that must not be hidden behind harmless ones (skin cancer, cellulitis) are
+listed first whenever they match.
+
+**Why there is no skin classifier.** The best free on-device candidate
+(Eraly-ml/Skin-AI, ConvNeXt, 22 DermNet-style classes, MIT/CC0) was quantised
+to 89 MB and evaluated on 661 dermatologist-labelled phone photos from Google's
+SCIN dataset:
+
+| Measure | Result |
+|---|---|
+| Top-1 on conditions it has a class for (500 random cases) | 15% (always answering "eczema" scores 54%) |
+| Top-3 | 26% |
+| Eczema, the most common condition | 1% recall |
+| Fitzpatrick 4-6 vs 1-3, top-1 | 13% vs 15% |
+| Skin cancers (BCC, SCC, melanoma) | 0 of 15 caught; the melanoma was called an insect bite |
+| Conditions with no class (hives, impetigo, shingles…) | confidently named as something else 43% of the time |
+
+A model that misses every cancer and calls it a bite would do harm, so the
+feature is a questionnaire instead. A classifier trained on phone photos (for
+example SCIN, under its data use licence) and tested the same way could be
+reconsidered.
+
 ## Layout
 
 ```
@@ -152,6 +192,7 @@ src/
   species/human/      trackers, skull / hand / body rigs
   species/animal/     detector + pose tracker, species proportions,
                       procedural bone geometry, quadruped rig
+  skin/               skin check questionnaire (guide.ts) and its panel
 ```
 
 ## Phases
@@ -159,7 +200,8 @@ src/
 1. Human skull and hands (reproduces the reference video) (done).
 2. Human full body: spine, ribs, pelvis, limbs (done).
 3. Dog and cat: species detection, animal pose model, skeleton rigs (done).
-4. Polish: scan modes, bone details on click, recording.
+4. Skin check: guided questionnaire with camera magnifier (done).
+5. Polish: scan modes, bone details on click, recording.
 
 ## Asset credit
 

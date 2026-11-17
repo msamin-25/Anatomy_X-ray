@@ -14,21 +14,24 @@
 
     <section id="intro">
       <h1>Anatomy X-ray</h1>
-      <p>See the skeleton under your skin, or your dog’s or cat’s, live. Video stays on this device.</p>
+      <p>See the skeleton under your skin, or your dog’s or cat’s, live, or check a spot on your skin. Video stays on this device.</p>
       <div class="starts">
         <button id="start" class="primary">X-ray me</button>
         <button id="startPet" class="primary">X-ray my pet</button>
+        <button id="startSkin" class="primary">Check my skin</button>
       </div>
       <label class="pick">or choose a photo or video<input id="file" type="file" accept="image/*,video/*" /></label>
       <p id="status" role="status"></p>
     </section>
 
     <p id="hud" role="status"></p>
+    <aside id="skinPanel" aria-label="Skin check" hidden></aside>
 
     <nav id="controls" hidden>
       <div class="segmented" role="group" aria-label="Subject">
         <button data-mode="human" aria-pressed="true">Human</button>
         <button data-mode="animal" aria-pressed="false">Dog / Cat</button>
+        <button data-mode="skin" aria-pressed="false">Skin</button>
       </div>
       <div class="segmented human-only" role="group" aria-label="Face reveal">
         <button data-face="half" aria-pressed="true">Half</button>
@@ -43,6 +46,9 @@
         <button data-species="dog" aria-pressed="false">Dog</button>
         <button data-species="cat" aria-pressed="false">Cat</button>
       </div>
+      <button id="zoom" class="skin-only" hidden title="Magnify the picture">Zoom 1×</button>
+      <button id="torch" class="skin-only" hidden aria-pressed="false" title="Turn the phone's light on or off">Light</button>
+      <button id="savePhoto" class="skin-only" hidden title="Save what the camera sees">Save photo</button>
       <button id="flip" hidden title="Switch between the front and rear camera">Flip camera</button>
       <button id="labelsToggle" aria-pressed="true">Labels</button>
     </nav>

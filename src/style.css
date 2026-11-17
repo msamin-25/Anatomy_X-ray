@@ -151,6 +151,10 @@ button.primary {
   backdrop-filter: blur(10px);
 }
 
+#controls button {
+  white-space: nowrap;
+}
+
 #controls[hidden] {
   display: none;
 }
@@ -190,6 +194,140 @@ button.primary {
   opacity: 0.8;
 }
 
+/* Skin check panel */
+#skinPanel {
+  position: fixed;
+  top: calc(40px + env(safe-area-inset-top));
+  right: calc(16px + env(safe-area-inset-right));
+  width: min(380px, calc(100vw - 32px));
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  padding: 12px 16px 16px;
+  background: rgba(6, 12, 24, 0.9);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+#skinPanel[hidden],
+#skinPanel .skin-body[hidden] {
+  display: none;
+}
+
+.skin-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.skin-head h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.skin-head button {
+  padding: 5px 12px;
+}
+
+#skinPanel h3 {
+  margin: 14px 0 6px;
+  font-size: 14px;
+}
+
+#skinPanel p {
+  margin: 8px 0;
+}
+
+#skinPanel ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+#skinPanel li {
+  margin: 6px 0;
+}
+
+#skinPanel a {
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+#skinPanel .primary {
+  margin-top: 4px;
+  padding: 9px 20px;
+  font-size: 14px;
+}
+
+.skin-step {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.skin-help,
+.skin-note {
+  font-size: 12px;
+}
+
+.skin-note {
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.skin-options {
+  display: grid;
+  gap: 6px;
+}
+
+.skin-option {
+  width: 100%;
+  border-radius: 12px;
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 500;
+}
+
+.skin-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.skin-level {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-left: 4px solid var(--level);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--level) 16%, transparent);
+}
+
+.skin-level strong {
+  font-size: 15px;
+  color: var(--level);
+}
+
+.level-emergency {
+  --level: #ff6b6b;
+}
+
+.level-today {
+  --level: #ffa94d;
+}
+
+.level-soon {
+  --level: #ffd43b;
+}
+
+.level-selfcare {
+  --level: #69db7c;
+}
+
 @media (max-width: 600px) {
   #controls {
     border-radius: 20px;
@@ -200,6 +338,14 @@ button.primary {
 
   #controls button {
     padding: 7px 11px;
+  }
+
+  #skinPanel {
+    left: calc(8px + env(safe-area-inset-left));
+    right: calc(8px + env(safe-area-inset-right));
+    top: calc(34px + env(safe-area-inset-top));
+    width: auto;
+    max-height: 52vh;
   }
 
   #credit {

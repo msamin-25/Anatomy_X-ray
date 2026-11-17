@@ -13,6 +13,8 @@ export interface FrameSource {
   mirror: boolean;
   /** True for a camera, which fills the screen; files are shown whole. */
   live: boolean;
+  /** The camera track, for zoom and light controls. */
+  track?: MediaStreamTrack;
   /** Returns true when there is a frame the trackers have not seen yet. */
   hasNewFrame(): boolean;
   dispose(): void;
@@ -33,6 +35,7 @@ function videoSource(video: HTMLVideoElement, mirror: boolean, stream?: MediaStr
     texture,
     mirror,
     live: !!stream,
+    track: stream?.getVideoTracks()[0],
     hasNewFrame() {
       if (video.readyState < 2 || video.currentTime === last) return false;
       last = video.currentTime;
@@ -64,20 +67,25 @@ function makeVideo(): HTMLVideoElement {
   return video;
 }
 
-/** Opens the front (`user`) or rear (`environment`) camera. */
-export async function openCamera(facing: Facing = 'user'): Promise<FrameSource> {
+/**
+ * Opens the front (`user`) or rear (`environment`) camera. `sharp` asks for
+ * more pixels (for close-ups of skin); tracking runs faster at the default.
+ */
+export async function openCamera(facing: Facing = 'user', sharp = false): Promise<FrameSource> {
   if (!navigator.mediaDevices?.getUserMedia) {
     throw new Error('This browser cannot open the camera here. Use HTTPS, or a current Safari or Chrome.');
   }
   // Ask for a frame shaped like the screen: a landscape request on a phone held
   // upright can come back cropped to a square.
   const portrait = window.innerHeight > window.innerWidth;
+  const long = sharp ? 1920 : 1280;
+  const short = sharp ? 1080 : 720;
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: false,
     video: {
       facingMode: { ideal: facing },
-      width: { ideal: portrait ? 720 : 1280 },
-      height: { ideal: portrait ? 1280 : 720 },
+      width: { ideal: portrait ? short : long },
+      height: { ideal: portrait ? long : short },
     },
   });
   const video = makeVideo();
