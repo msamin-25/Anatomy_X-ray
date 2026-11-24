@@ -5,5 +5,5 @@ tools/.cache/
 __pycache__/
 .DS_Store
 *.local
-public/mediapipe/
-public/test/
+frontend/public/mediapipe/
+frontend/public/test/

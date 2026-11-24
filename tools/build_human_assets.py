@@ -1,4 +1,4 @@
-"""Build public/models/human/human.glb and human.json from BodyParts3D.
+"""Build frontend/public/models/human/human.glb and human.json from BodyParts3D.
 
 Downloads the bone meshes it needs (cached in tools/.cache), converts them to
 anatomical space (cm, +X subject's left, +Y up, +Z anterior), decimates them
@@ -27,7 +27,7 @@ import trimesh
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = Path(__file__).resolve().parent / ".cache" / "bodyparts3d"
-OUT = ROOT / "public" / "models" / "human"
+OUT = ROOT / "frontend" / "public" / "models" / "human"
 BASE = (
     "https://raw.githubusercontent.com/Kevin-Mattheus-Moerman/BodyParts3D/"
     "main/assets/BodyParts3D_data"

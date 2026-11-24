@@ -1,4 +1,4 @@
-"""Build public/models/human/systems.glb and systems.json: heart, vessels, nerves.
+"""Build frontend/public/models/human/systems.glb and systems.json: heart, vessels, nerves.
 
 The heart, great vessels, lungs and brain are BodyParts3D meshes. BodyParts3D
 has no meshes for the vessels and nerves of the limbs, neck, face and chest
