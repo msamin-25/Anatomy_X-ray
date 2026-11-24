@@ -6,6 +6,8 @@ anatomical labels and animated blood flow. Other modes show a dog or cat
 skeleton, a 3D body you can turn and zoom without a camera, and a guided skin
 check. Everything runs in the browser and no video leaves your device.
 
+*** The Updated version with more features is coming sooooooon!
+
 ## Run
 
 ```bash
