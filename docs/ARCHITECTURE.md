@@ -16,8 +16,10 @@ video frame (webcam or a dropped image/video file)
                       └─ Labels    bone anchors projected to screen, leader lines
 ```
 
-One `requestAnimationFrame` loop drives all stages. Trackers only run when the
-video has a new frame.
+One `requestAnimationFrame` loop drives all stages. Trackers only run, and the
+canvas is only redrawn, when the video has a new frame (a camera gives about
+30 a second, while phone screens refresh at 60 to 120 Hz); the loop runs at
+most about 60 times a second.
 
 ## Stack
 
@@ -38,7 +40,7 @@ video has a new frame.
   use that matrix directly.
 - **Anatomical space** (the GLB): centimetres, +X subject's left, +Y up,
   +Z anterior. Every bone mesh stays in its rest position in this space; the
-  rig only ever sets `mesh.matrix`.
+  rig only ever sets each bone's `node.matrix` and `node.visible`.
 - **Screen**: the video and the 3D canvas are drawn unmirrored and flipped
   together in CSS for the mirror effect. Labels are drawn on a separate,
   unflipped canvas so text reads correctly.
@@ -71,6 +73,30 @@ Rest joints (A₀, B₀) are computed by the asset pipeline from the bone meshes
    an additive edge glow on every layer (thick, edge-on bone ends up brightest,
    as on a radiograph).
 4. Labels: 2D canvas, leader lines from projected bone anchors to side columns.
+
+The 244 human bones are merged into ten batches, one per region the rigs show
+and hide together (skull, trunk, each arm, hand, leg and foot). Before each
+render, `Skeleton.sync` writes every bone's matrix and visibility into a small
+float texture, and the vertex shader poses each vertex from its bone's row; a
+hidden bone is moved outside the view, so it costs no pixels. A batch with no
+visible bone is skipped. The whole skeleton is 30 draw calls rather than 732.
+The pet skeletons still use one mesh per bone.
+
+## Performance on phones
+
+`src/core/device.ts` treats touch-screen devices (`pointer: coarse`) as phones;
+`?quality=lite` or `?quality=full` overrides it. Phones render at up to 1.5
+pixels per CSS pixel instead of 2 and use MediaPipe's lite body model instead
+of the full one.
+
+Each tracker runs synchronously on the main thread, so `HumanPlugin` times
+them (a smoothed cost per tracker). When face, hands and body together take
+more than 24 ms per frame, hands and body take turns on alternate frames,
+and while no hand is in view the hand search (the costliest step: MediaPipe
+reruns palm detection on every frame until it has found both hands) gets one
+turn in four. Face tracking always runs every frame. A tracker that sits out a
+frame leaves its bones where they were, and each rig's smoothing gets the
+time since that tracker last ran. `?debug` shows the costs in the status chip.
 
 ## Body systems
 
@@ -233,7 +259,7 @@ public/models/human/  human.glb + human.json, systems.glb + systems.json
 public/models/animal/ rtmpose-ap10k.onnx (fetched by `npm run animal-model`)
 src/
   main.ts             bootstrap, UI wiring, mode switching
-  core/               video source, filters, math
+  core/               video source, filters, math, phone detection
   render/             stage, X-ray material, labels, face mask
   species/human/      trackers, skull / hand / body rigs, body systems,
                       3D explorer, shared model

@@ -189,19 +189,29 @@ function startCamera(next: Facing): Promise<void> {
   }, true);
 }
 
+/** At most about 60 updates a second, also on 90 and 120 Hz screens. */
+const MIN_FRAME_MS = 15;
+let lastDraw = 0;
+
 function tick(now: number): void {
   requestAnimationFrame(tick);
-  if (!source) return;
+  if (!source || now - lastDraw < MIN_FRAME_MS) return;
   if (stage.needsLayout()) stage.layout(); // the phone was rotated
-  if (active && source.hasNewFrame()) {
+  // Draw only when there is something new to show: a camera gives about 30
+  // frames a second, and the screen refreshes two to four times as often.
+  const fresh = source.hasNewFrame();
+  if (active && fresh) {
     const dt = lastTime ? (now - lastTime) / 1000 : 0;
     lastTime = now;
     anchors = active.update({ source, time: now, dt, aspect: stage.aspect }, options);
     document.body.dataset.frames = String(++frames);
   }
-  stage.render();
-  labels.draw(showLabels ? anchors : []);
-  if (mode === 'skin') anchors = [];
+  if (fresh || stage.dirty) {
+    stage.render();
+    labels.draw(showLabels ? anchors : []);
+    if (mode === 'skin') anchors = [];
+    lastDraw = now;
+  }
   updateStatus();
 }
 
@@ -225,6 +235,10 @@ function updateStatus(): void {
     state = kind ? 'live' : 'search';
   } else {
     text = source?.live ? 'Live' : source?.el instanceof HTMLVideoElement ? 'Video' : 'Photo';
+    if (params.has('debug') && mode === 'human') {
+      const c = human.cost;
+      text += ` · face ${c.face.toFixed(0)} · hands ${c.hands.toFixed(0)} · body ${c.pose.toFixed(0)} ms`;
+    }
     state = 'live';
   }
   if (hudText.textContent !== text) hudText.textContent = text;

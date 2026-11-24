@@ -1,4 +1,5 @@
 import { PerspectiveCamera, Scene, Vector3, WebGLRenderer } from 'three';
+import { LITE } from '../core/device';
 import { FOV_DEG } from '../core/math';
 import type { FrameSource } from '../core/source';
 
@@ -15,11 +16,15 @@ export class Stage {
   mirror = false;
   /** Digital magnification, applied with CSS around the centre of the screen. */
   zoom = 1;
+  /** True when the canvas must be redrawn even without a new frame (it was resized or given a new source). */
+  dirty = true;
+  /** Called at the start of every render, e.g. to upload bone matrices. */
+  readonly beforeRender: (() => void)[] = [];
   private source: FrameSource | null = null;
   private readonly tmp = new Vector3();
 
   constructor(readonly canvas: HTMLCanvasElement) {
-    this.renderer = new WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+    this.renderer = new WebGLRenderer({ canvas, antialias: true });
     this.renderer.setClearColor(0x05070c);
     this.camera.matrixAutoUpdate = false;
   }
@@ -58,10 +63,13 @@ export class Stage {
     style.left = `${(vw - w) / 2}px`;
     style.top = `${(vh - h) / 2}px`;
     this.applyZoom();
-    const dpr = Math.min(window.devicePixelRatio, 2);
+    // Phones draw fewer pixels: past about 1.5 pixels per CSS pixel the
+    // difference is hard to see, and the cost grows with the square.
+    const dpr = Math.min(window.devicePixelRatio, LITE ? 1.5 : 2);
     const maxH = source ? Math.max(source.height, 720) : 720;
     const rh = Math.min(h * dpr, maxH * 1.5);
     this.renderer.setSize(Math.round(rh * this.aspect), Math.round(rh), false);
+    this.dirty = true;
   }
 
   setZoom(zoom: number): void {
@@ -86,6 +94,8 @@ export class Stage {
   }
 
   render(): void {
+    for (const f of this.beforeRender) f();
     this.renderer.render(this.scene, this.camera);
+    this.dirty = false;
   }
 }

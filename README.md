@@ -49,8 +49,13 @@ enough (see the architecture notes).
 URL options, handy for testing: `?mode=animal|skin|explore`, `?nerves=1`,
 `?blood=1`, `?species=dog|cat`,
 `?src=/test/dog_side.jpg` (an image or video instead of the camera),
-`?delegate=cpu`, and `?debug` (shows pose inference time and exposes
-tracking internals as `window.__animal`).
+`?delegate=cpu`, `?quality=lite|full` (force the phone or desktop setup), and
+`?debug` (shows tracker and pose inference times and exposes tracking
+internals as `window.__animal`).
+
+On phones the app renders at a lower resolution and uses a lighter body
+tracker, and on any slow device hand and body tracking take turns between
+frames, so the video stays smooth (see the architecture notes).
 
 ## Hosting
 

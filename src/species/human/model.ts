@@ -27,6 +27,7 @@ export class HumanModel {
       (skeleton) => {
         this.skeleton = skeleton;
         stage.scene.add(this.mask.mesh, skeleton.root);
+        stage.beforeRender.push(() => skeleton.sync());
       },
       (err) => {
         this.loading = null;
